@@ -1,0 +1,8 @@
+[workspace]
+members = [
+    "mittere",
+    "mittere-server"
+]
+exclude = [
+    "mittere-lib"
+]
