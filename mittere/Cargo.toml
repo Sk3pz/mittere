@@ -5,14 +5,7 @@ authors = ["Eric (Skepz)"]
 edition = "2018"
 
 [dependencies]
-enum-map = "*"
-futures  = "*"
-arc-swap = "*"
 better_term = "*"
 threadpool = "*"
 mittere-lib = { path="../mittere-lib" }
 chrono = "*"
-
-[dependencies.uuid]
-version = "*"
-features = ["v4"]

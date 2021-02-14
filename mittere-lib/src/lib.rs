@@ -1,12 +1,12 @@
-#![feature(num_as_ne_bytes)]
 
 use better_term::style::Color;
 use crate::logger::Logger;
 use std::path::Path;
 use chrono::Local;
 
-pub mod network;
 pub mod logger;
+mod proto_buff;
+mod network;
 
 pub fn make_logger(show_verbose: bool, output_console: bool, output_file: bool, panic_on_err: bool) -> Logger {
     // get the current directory

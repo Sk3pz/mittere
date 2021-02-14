@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+//message MitterePacket {
+//  uint32 packet_type_id = 1;
+//  string err = 2; // will contain an error message if there is an error (for packet types Connection Error and possibly Disconnect)
+//  string username = 3; // for logins and signups
+//  string password = 4; // for logins and signups
+//  bool validated = 5; // will be true if is a validation packet
+//  string channel_list = 6; // currently unused
+//  string channel_msg_history = 7; // currently unused
+//  string signup_key = 8; // for signup key
+//  string msg = 9; // for sending a message
+//  string display_name = 10; // for sending a message
+//  string name_color = 11; // for sending a message
+//  string msg_color = 12; // for sending a message
+//  string motd = 13; // sending the MOTD on connection
+//}
+
+message ConnectionError {
+  string err = 1;
+}
+
+message Login {
+  string username = 1;
+  string password = 2;
+}
+
+message LoginValidate {
+  bool validated = 1;
+}
+
+message JoinChannel { // sent when a user first logs in and when switching channels
+  string channel_list = 1;
+  string channel_msg_history = 2;
+}
+
+message SignupKey {
+  string key = 1;
+}
+
+message SignupKeyValidate {
+  bool validated = 1;
+}
+
+message Signup {
+  string username = 1;
+  string password = 2;
+}
+
+message Disconnect {
+  bool error = 1; // set to true if disconnecting because of an error
+}
+
+message Msg { // when a client sends a message, this data is sent
+  string display_name = 1;
+  string name_color = 2;
+  string msg = 3;
+  string msg_color = 4;
+}
+
+message MOTD { // sent when the user first connects
+  string motd = 1;
+}
