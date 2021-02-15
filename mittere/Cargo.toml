@@ -1,6 +1,6 @@
 [package]
 name = "mittere"
-version = "0.1.0"
+version = "1.0.0-rc0"
 authors = ["Eric (Skepz)"]
 edition = "2018"
 

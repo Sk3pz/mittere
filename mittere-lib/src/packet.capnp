@@ -25,13 +25,16 @@ struct EntryResponse @0xc792e4d7db27ca82 {
     union {
         motd @1 :Text;
 
+        # will send the server's version if is a 'ping'
+        version @2 :Text;
+        
         # error will either be:
         # - You're on an outdated version! Im on <version>
         # - You're on a later version! Im on <version>
         # - The server is full!
         # - The login you've entered is incorrect
         # - Invalid signup key
-        error @2 :Text;
+        error @3 :Text;
     }
 }
 

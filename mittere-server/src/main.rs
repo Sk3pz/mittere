@@ -12,16 +12,18 @@ use std::thread;
 
 use mittere_lib::packet_capnp::{entry_point, entry_response, login, config_data, event};
 use std::fs::File;
+use chrono::Local;
+
+pub const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 mod client;
 mod command;
 
 fn main() {
-    let verbose = true;
-
     // ==================== LOGGER ====================
     // Create a logger to output to console
-    let mut logger = make_logger(verbose, true, true, true, None);
+    let verbose = true;
+    let mut logger = make_logger(verbose, true, true, true);
 
     // ==================== CONFIGURATION ====================
     // The maximum connections the server can have at one time
@@ -35,6 +37,9 @@ fn main() {
     let ip = "localhost"; // IP to listen on
     let port = "8080";    // Port to listen on
     let address = format!("{}:{}", ip, port);
+
+    // TODO: can you guess what this needs to be? Configurable!
+    let MOTD = String::from("==============================\nWelcome to the Mittere server!\n==============================");
 
     // ==================== COMMAND EXECUTION ====================
     // Start command execution thread
@@ -107,10 +112,9 @@ fn main() {
             clients.push(s);
             let c_sender = client_sender.clone();
 
-            thread::spawn(move || handle_client(handler_s.unwrap(),
-                                                make_logger(verbose, true,
-                                                            true, false, Some(ip)),
-                                                c_sender.clone()));
+            let motd_clone = MOTD.clone();
+
+            thread::spawn(move || handle_client(handler_s.unwrap(), c_sender.clone(), motd_clone));
         }
 
         // ==================== CLIENT HANDLING ====================

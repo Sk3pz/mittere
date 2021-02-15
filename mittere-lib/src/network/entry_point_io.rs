@@ -33,6 +33,7 @@ pub fn write_entry_point_signup(mut stream: &TcpStream, username: String, passwd
     serialize::write_message(&mut stream, &message)
 }
 
+/// Returns logindata, version, error
 pub fn read_entry_point(mut stream: &TcpStream) -> (Option<LoginData>, Option<String>, Option<String>) {
     let message_reader = serialize::read_message(&mut stream, ::capnp::message::ReaderOptions::new()).expect("Uh oh!");
     let ep = message_reader.get_root::<entry_point::Reader>().expect("Uh oh 2!");

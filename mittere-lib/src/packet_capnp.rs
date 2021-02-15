@@ -384,7 +384,7 @@ pub mod entry_point {
 }
 
 pub mod entry_response {
-  pub use self::Which::{Motd,Error};
+  pub use self::Which::{Motd,Version,Error};
 
   #[derive(Copy, Clone)]
   pub struct Owned(());
@@ -439,8 +439,12 @@ pub mod entry_response {
       if self.reader.get_data_field::<u16>(1) != 0 { return false; }
       !self.reader.get_pointer_field(0).is_null()
     }
-    pub fn has_error(&self) -> bool {
+    pub fn has_version(&self) -> bool {
       if self.reader.get_data_field::<u16>(1) != 1 { return false; }
+      !self.reader.get_pointer_field(0).is_null()
+    }
+    pub fn has_error(&self) -> bool {
+      if self.reader.get_data_field::<u16>(1) != 2 { return false; }
       !self.reader.get_pointer_field(0).is_null()
     }
     #[inline]
@@ -452,6 +456,11 @@ pub mod entry_response {
           ))
         }
         1 => {
+          ::core::result::Result::Ok(Version(
+            ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0), ::core::option::Option::None)
+          ))
+        }
+        2 => {
           ::core::result::Result::Ok(Error(
             ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0), ::core::option::Option::None)
           ))
@@ -532,17 +541,31 @@ pub mod entry_response {
       !self.builder.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn set_error(&mut self, value: ::capnp::text::Reader<'_>)  {
+    pub fn set_version(&mut self, value: ::capnp::text::Reader<'_>)  {
       self.builder.set_data_field::<u16>(1, 1);
       self.builder.get_pointer_field(0).set_text(value);
     }
     #[inline]
-    pub fn init_error(self, size: u32) -> ::capnp::text::Builder<'a> {
+    pub fn init_version(self, size: u32) -> ::capnp::text::Builder<'a> {
       self.builder.set_data_field::<u16>(1, 1);
       self.builder.get_pointer_field(0).init_text(size)
     }
-    pub fn has_error(&self) -> bool {
+    pub fn has_version(&self) -> bool {
       if self.builder.get_data_field::<u16>(1) != 1 { return false; }
+      !self.builder.get_pointer_field(0).is_null()
+    }
+    #[inline]
+    pub fn set_error(&mut self, value: ::capnp::text::Reader<'_>)  {
+      self.builder.set_data_field::<u16>(1, 2);
+      self.builder.get_pointer_field(0).set_text(value);
+    }
+    #[inline]
+    pub fn init_error(self, size: u32) -> ::capnp::text::Builder<'a> {
+      self.builder.set_data_field::<u16>(1, 2);
+      self.builder.get_pointer_field(0).init_text(size)
+    }
+    pub fn has_error(&self) -> bool {
+      if self.builder.get_data_field::<u16>(1) != 2 { return false; }
       !self.builder.get_pointer_field(0).is_null()
     }
     #[inline]
@@ -554,6 +577,11 @@ pub mod entry_response {
           ))
         }
         1 => {
+          ::core::result::Result::Ok(Version(
+            ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(0), ::core::option::Option::None)
+          ))
+        }
+        2 => {
           ::core::result::Result::Ok(Error(
             ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(0), ::core::option::Option::None)
           ))
@@ -576,12 +604,13 @@ pub mod entry_response {
     pub const STRUCT_SIZE: layout::StructSize = layout::StructSize { data: 1, pointers: 1 };
     pub const TYPE_ID: u64 = 0xc792_e4d7_db27_ca82;
   }
-  pub enum Which<A0,A1> {
+  pub enum Which<A0,A1,A2> {
     Motd(A0),
-    Error(A1),
+    Version(A1),
+    Error(A2),
   }
-  pub type WhichReader<'a,> = Which<::capnp::Result<::capnp::text::Reader<'a>>,::capnp::Result<::capnp::text::Reader<'a>>>;
-  pub type WhichBuilder<'a,> = Which<::capnp::Result<::capnp::text::Builder<'a>>,::capnp::Result<::capnp::text::Builder<'a>>>;
+  pub type WhichReader<'a,> = Which<::capnp::Result<::capnp::text::Reader<'a>>,::capnp::Result<::capnp::text::Reader<'a>>,::capnp::Result<::capnp::text::Reader<'a>>>;
+  pub type WhichBuilder<'a,> = Which<::capnp::Result<::capnp::text::Builder<'a>>,::capnp::Result<::capnp::text::Builder<'a>>,::capnp::Result<::capnp::text::Builder<'a>>>;
 }
 
 pub mod config_data {

@@ -5,7 +5,8 @@ use std::sync::mpsc::{Sender, Receiver, channel};
 use std::io::{Read, Write};
 use better_term::style::{Style, Color};
 use mittere_lib::make_logger;
-use mittere_lib::network::entry_point_io::write_entry_point_ver;
+use mittere_lib::network::entry_point_io::{write_entry_point_ver, write_entry_point_signup};
+use mittere_lib::network::entry_response_io::read_entry_response;
 
 /*
     TODO: Reading system:
@@ -18,7 +19,7 @@ use mittere_lib::network::entry_point_io::write_entry_point_ver;
 
 fn main() {
 
-    let version = env!("CARGO_PKG_VERSION");
+    let version = String::from(env!("CARGO_PKG_VERSION"));
 
     // create channel for communicating between the input thread and the main loop
     let (tx, rx): (Sender<String>, Receiver<String>) = channel();
@@ -37,11 +38,18 @@ fn main() {
         return;
     }
     let mut stream = stream_result.expect("Uh oh! I made an oopsie! Please contact the developer and explain you got an error code 01C");
-    write_entry_point_ver(&stream, version.to_string()); // send the "ping" packet
+    write_entry_point_ver(&stream, version); // send the "ping" packet
+    let (valid, motd, server_version, err) = read_entry_response(&stream);
+    if motd.is_some() {
+        println!("Valid: {}\nMOTD:\n{}", valid, motd.unwrap());
+    }
+    if server_version.is_some() {
+        println!("Valid: {}\nserver version: {}", valid, server_version.unwrap());
+    }
+    if err.is_some() {
+        println!("Valid: {}\nerror: {}", valid, err.unwrap());
+    }
 
-    // TODO: Signup / Login system here
-
-    // TODO: handle connection
 
     drop((tx, rx));
     
