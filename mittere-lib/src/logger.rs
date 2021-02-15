@@ -12,11 +12,11 @@ use better_term::style::{Style, Color};
 
 /// A logging system to output to
 pub struct Logger {
-    output_console: bool, // defines if messages should be printed to console when created
-    output_file: bool,
-    show_verbose: bool,
-    panic_on_err: bool,
-    log_file: File,
+    pub output_console: bool, // defines if messages should be printed to console when created
+    pub output_file: bool,
+    pub show_verbose: bool,
+    pub panic_on_err: bool,
+    pub log_file: File,
 }
 
 impl Logger {

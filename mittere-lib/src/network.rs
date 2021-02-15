@@ -1,3 +1,7 @@
+pub mod entry_point_io;
+pub mod entry_response_io;
+pub mod login_data;
+
 use std::net::TcpStream;
 use std::io::{Error, Read};
 

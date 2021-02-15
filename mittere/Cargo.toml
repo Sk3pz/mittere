@@ -9,3 +9,5 @@ better_term = "*"
 threadpool = "*"
 mittere-lib = { path="../mittere-lib" }
 chrono = "*"
+capnp = "*"
+capnpc = "*"

@@ -3,9 +3,9 @@
 use std::net::TcpStream;
 use std::sync::mpsc::{Sender, Receiver, channel};
 use std::io::{Read, Write};
-use mittere_lib::network::PacketType;
 use better_term::style::{Style, Color};
 use mittere_lib::make_logger;
+use mittere_lib::network::entry_point_io::write_entry_point_ver;
 
 /*
     TODO: Reading system:
@@ -17,6 +17,9 @@ use mittere_lib::make_logger;
 */
 
 fn main() {
+
+    let version = env!("CARGO_PKG_VERSION");
+
     // create channel for communicating between the input thread and the main loop
     let (tx, rx): (Sender<String>, Receiver<String>) = channel();
 
@@ -26,14 +29,15 @@ fn main() {
     let port = "8080";
     let address = format!("{}:{}", ip, port);
 
-    // Establish connection to start communication
-    let stream_result = TcpStream::connect(address);
+    // Establish a temporary connection to check if the server is up and if it is on a compatible version
+    let mut stream_result = TcpStream::connect(address);
     if stream_result.is_err() {
         eprintln!("{}Failed to connect to the Mittere server: The connection is not available or was refused. \
         Maybe check the IP and Port?\n > IP: {}\n > PORT: {}", Color::Red, ip, port);
         return;
     }
-    let stream = stream_result.expect("Uh oh! I made an oopsie! Please contact the developer and explain you got an error code 01C");
+    let mut stream = stream_result.expect("Uh oh! I made an oopsie! Please contact the developer and explain you got an error code 01C");
+    write_entry_point_ver(&stream, version.to_string()); // send the "ping" packet
 
     // TODO: Signup / Login system here
 
