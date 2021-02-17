@@ -77,7 +77,7 @@ impl Logger {
                     if self.panic_on_err {
                         panic!("Failed to write to log file: {}", why);
                     } else if self.output_console {
-                        self.output_console("ERROR", format!("FAILED TO WRITE TO FILE: {}", why).as_str());
+                        self.output_console("ERROR", format!("Failed to write log message to file: {}", why).as_str());
                     }
                 }
             }
@@ -129,6 +129,64 @@ impl Logger {
         // self.output_console("\x1b[0;36mINFO", msg);
         self.output_console(format!("{}INFO", Color::Cyan).as_str(), smsg.as_str());
         self.output("INFO", smsg.as_str());
+    }
+
+    /// Displays an important message.
+    /// Should be run when something isn't an issue but is important information
+    pub fn important<S: Into<String>>(&mut self, msg: S) {
+        let smsg = msg.into();
+        // self.output_console("\x1b[0;93mWARN", msg);
+        if self.output_console {
+            println!("{}[{}{}{}] [{}IMPORTANT{}] {}> {}{}",
+                     Color::Green, // timestamp [
+                     Color::White,       // timestamp color
+                     self.get_timestamp(),                    // timestamp
+                     Color::Green, // timestamp ] and prefix [
+                     Color::BrightGreen,       // prefix color
+                     Color::Green, // prefix ]
+                     Color::White, // >
+                     Color::BrightGreen, // message color
+                     smsg                                      // display the message
+            );
+        }
+        self.output("IMPORTANT", smsg.clone().as_str());
+    }
+
+    /// Displays a client's chat message
+    /// Should be run when a client sends a chat message
+    pub fn chat<S: Into<String>>(&mut self, msg: S, msg_color: String, display_name: String, name_color: String) {
+        let smsg = msg.into();
+        // self.output_console("\x1b[0;93mWARN", msg);
+        if self.output_console {
+            //println!("\x1b[0;90m[\x1b[0;37m{}\x1b[0;90m] [{}\x1b[0;90m] \x1b[0;37m> \x1b[0;97m{}", self.get_timestamp(), prefix, msg);
+            println!("{}[{}{}{}] {}{} {}> {}{}",
+                     Color::BrightBlack, // timestamp [
+                     Color::White,       // timestamp color
+                     self.get_timestamp(), // timestamp
+                     Color::BrightBlack, // timestamp ]
+                     name_color,  // The display name color
+                     display_name, // display name
+                     Color::White, // >
+                     msg_color, // message color
+                     smsg // display the message
+            );
+        }
+
+        let file_msg = format!("[{}] {} > {}\n", self.get_timestamp(), display_name, smsg).to_string();
+
+        // Write to file
+        if self.output_file {
+            match self.log_file.write_all(file_msg.as_bytes()) {
+                Ok(_) => (),
+                Err(why) => {
+                    if self.panic_on_err {
+                        panic!("Failed to write to log file: {}", why);
+                    } else if self.output_console {
+                        self.output_console("ERROR", format!("Failed to write log message to file: {}", why).as_str());
+                    }
+                }
+            }
+        }
     }
 
     /// Displays a warning message.

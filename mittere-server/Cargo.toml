@@ -11,3 +11,4 @@ mittere-lib = { path="../mittere-lib" }
 chrono = "*"
 capnp = "*"
 capnpc = "*"
+lazy_static = "*"

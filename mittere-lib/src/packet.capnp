@@ -38,16 +38,18 @@ struct EntryResponse @0xc792e4d7db27ca82 {
     }
 }
 
-# Sent to the server after a client has successfully logged in to tell the server the client's configuration settings
-struct ConfigData @0x9c441dc090245310 {
+# A message struct to be sent when a client sends a message
+struct Message @0xac3bff3f53112559 {
     displayName @0 :Text;
     nameColor @1 :Text;
     msgColor @2 :Text;
+    msg @3 :Text;
 }
 
 struct Event @0x954853fead309425 {
     union {
-        message @0 :Text;
+        message @0 :Message;
         error @1 :Text;
+        # TODO: store other events here
     }
 }

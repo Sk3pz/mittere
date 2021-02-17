@@ -6,15 +6,23 @@ use mittere_lib::make_logger;
 use std::sync::mpsc::{Sender, Receiver, channel};
 use threadpool::ThreadPool;
 use crate::command::command_processor;
-use crate::client::handle_client;
+use crate::client::{handle_client, check_disconnected};
 use std::collections::HashMap;
 use std::thread;
 
-use mittere_lib::packet_capnp::{entry_point, entry_response, login, config_data, event};
+use mittere_lib::packet_capnp::{entry_point, entry_response, login, event};
 use std::fs::File;
 use chrono::Local;
 
+use lazy_static::lazy_static;
+use std::sync::{Arc, Mutex};
+use mittere_lib::network::entry_response_io::write_invalid_entry_response;
+
 pub const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+lazy_static! {
+    static ref global_logger: Arc<Mutex<Logger>> = Arc::new(Mutex::new(make_logger(true, true, true, false)));
+}
 
 mod client;
 mod command;
@@ -22,15 +30,15 @@ mod command;
 fn main() {
     // ==================== LOGGER ====================
     // Create a logger to output to console
-    let verbose = true;
-    let mut logger = make_logger(verbose, true, true, true);
+    //let verbose = true;
+    //let mut logger = make_logger(verbose, true, true, true);
 
     // ==================== CONFIGURATION ====================
     // The maximum connections the server can have at one time
     // TODO: Make configurable
     // default to 20 because that is within average usage (probably) (if they dont like it, then they can change it!)
     // -1 means 'infinite' (If they somehow have the ram for it, why not? :D)
-    let max_connections = 20;
+    let max_connections = 1;
 
     // get config values
     // TODO: make these values be configurable
@@ -55,11 +63,11 @@ fn main() {
     let listener_result = TcpListener::bind(address.clone());
     if listener_result.is_err() {
         // TODO: give a better explanation as to what happened with more info to help the user fix the issue
-        logger.failure(format!("Could not start TCP Listener on {}", address));
+        global_logger.lock().unwrap().failure(format!("Could not start TCP Listener on {}", address));
         return;
     }
     let listener = listener_result.expect("Uh oh! I made an oopsie! Please contact the developer and explain you got an error code 01S");
-    logger.info(format!("Started listening on {}.", address));
+    global_logger.lock().unwrap().info(format!("Started listening on {}.", address));
 
     // ==================== CLIENT HANDLING STRUCTURES ====================
     // Channel for the clients to send data to the server (All clients sent data will be put into receiver)
@@ -78,9 +86,9 @@ fn main() {
 
         // ==================== INCOMING CONNECTION REQUESTS ====================
         for stream in listener.incoming() {
-            logger.info("Processing possible connection...");
+            global_logger.lock().unwrap().info("Processing possible connection...");
             if stream.is_err() {
-                logger.warn("Failed to accept client. Continuing to listen.");
+                global_logger.lock().unwrap().warn("Failed to accept client. Continuing to listen.");
                 continue;
             }
             let s = stream.expect("Uh oh! I made an oopsie! Please contact the developer and explain you got an error code 02S");
@@ -91,20 +99,19 @@ fn main() {
 
             // I am not sure why I allow the maximum users setting to be 0 if the user sets it but whatever :)
             if (current_connections >= 0) && (current_connections > max_connections) {
-                // TODO: Send LoginValidate with 'The server is full!' as the error
-                let message = capnp::message::Builder::new_default();
+                write_invalid_entry_response(&s, String::from("The server is full!"));
 
-                logger.warn(format!("A connection was attempted by {} but was refused: server is full.", ip));
+                global_logger.lock().unwrap().warn(format!("A connection was attempted by {} but was refused: server is full.", ip));
                 drop(s);
                 continue;
             }
-            logger.info(format!("Accepted connection: {}.", ip));
+            global_logger.lock().unwrap().info(format!("Accepted connection: {}.", ip));
 
             let handler_s = s.try_clone();
 
             if handler_s.is_err() {
                 // TODO: send error packet
-                logger.warn("Failed to clone connection for client handler, Not handling last connection.");
+                global_logger.lock().unwrap().warn("Failed to clone connection for client handler, Not handling last connection.");
                 drop(s);
                 continue;
             }
@@ -115,9 +122,24 @@ fn main() {
             let motd_clone = MOTD.clone();
 
             thread::spawn(move || handle_client(handler_s.unwrap(), c_sender.clone(), motd_clone));
+            current_connections += 1;
         }
 
+        pritnln!("Clients connected: {}", );
+
         // ==================== CLIENT HANDLING ====================
+        // handle disconnected clients:
+        for mut x in 0..clients.len() {
+            let c = clients.get(x).unwrap();
+            println!("Processing Client at id {}", x);
+            if check_disconnected(c) {
+                println!("Attempting to remove client.");
+                clients.remove(x);
+                x -= 1;
+                current_connections -= 1;
+            }
+        }
+
         // handle currently connected users
         for s in &receiver {
             // TODO: handle clients
