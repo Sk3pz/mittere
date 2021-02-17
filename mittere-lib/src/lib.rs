@@ -4,11 +4,24 @@ use crate::logger::Logger;
 use std::path::Path;
 use chrono::Local;
 use chrono::format::{StrftimeItems, DelayedFormat};
+use std::time::{SystemTime, UNIX_EPOCH, Duration};
 
 pub mod logger;
 pub mod network;
 pub mod packet_capnp;
-// pub mod proto_buff; // NO LONGER USED - SWITCHED TO CAPNP
+
+pub const KEEPALIVE_INTERVAL: u64 = 20; // Time in seconds to send keepalive packet
+
+pub fn systime() -> Duration {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("Fatal error occurred: System time moved backwards! Are you a time traveler?")
+}
+
+pub fn to_epoch(time: SystemTime) -> Duration {
+    time.duration_since(UNIX_EPOCH)
+        .expect("Fatal error occurred: System time moved backwards! Are you a time traveler?")
+}
 
 pub fn make_logger(show_verbose: bool, output_console: bool, output_file: bool, panic_on_err: bool) -> Logger {
     // get the current directory

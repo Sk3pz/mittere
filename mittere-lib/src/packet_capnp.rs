@@ -815,7 +815,7 @@ pub mod message {
 }
 
 pub mod event {
-  pub use self::Which::{Message,Error};
+  pub use self::Which::{Message,Raw,Keepalive,Error};
 
   #[derive(Copy, Clone)]
   pub struct Owned(());
@@ -866,9 +866,17 @@ pub mod event {
       if self.reader.get_data_field::<u16>(0) != 0 { return false; }
       !self.reader.get_pointer_field(0).is_null()
     }
-    pub fn has_error(&self) -> bool {
+    pub fn has_raw(&self) -> bool {
       if self.reader.get_data_field::<u16>(0) != 1 { return false; }
       !self.reader.get_pointer_field(0).is_null()
+    }
+    pub fn has_error(&self) -> bool {
+      if self.reader.get_data_field::<u16>(0) != 3 { return false; }
+      !self.reader.get_pointer_field(0).is_null()
+    }
+    #[inline]
+    pub fn get_disconnect(self) -> bool {
+      self.reader.get_bool_field(16)
     }
     #[inline]
     pub fn which(self) -> ::core::result::Result<WhichReader<'a,>, ::capnp::NotInSchema> {
@@ -879,6 +887,16 @@ pub mod event {
           ))
         }
         1 => {
+          ::core::result::Result::Ok(Raw(
+            ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0), ::core::option::Option::None)
+          ))
+        }
+        2 => {
+          ::core::result::Result::Ok(Keepalive(
+            self.reader.get_data_field::<u64>(1)
+          ))
+        }
+        3 => {
           ::core::result::Result::Ok(Error(
             ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0), ::core::option::Option::None)
           ))
@@ -951,18 +969,45 @@ pub mod event {
       !self.builder.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn set_error(&mut self, value: ::capnp::text::Reader<'_>)  {
+    pub fn set_raw(&mut self, value: ::capnp::text::Reader<'_>)  {
       self.builder.set_data_field::<u16>(0, 1);
       self.builder.get_pointer_field(0).set_text(value);
     }
     #[inline]
-    pub fn init_error(self, size: u32) -> ::capnp::text::Builder<'a> {
+    pub fn init_raw(self, size: u32) -> ::capnp::text::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 1);
       self.builder.get_pointer_field(0).init_text(size)
     }
-    pub fn has_error(&self) -> bool {
+    pub fn has_raw(&self) -> bool {
       if self.builder.get_data_field::<u16>(0) != 1 { return false; }
       !self.builder.get_pointer_field(0).is_null()
+    }
+    #[inline]
+    pub fn set_keepalive(&mut self, value: u64)  {
+      self.builder.set_data_field::<u16>(0, 2);
+      self.builder.set_data_field::<u64>(1, value);
+    }
+    #[inline]
+    pub fn set_error(&mut self, value: ::capnp::text::Reader<'_>)  {
+      self.builder.set_data_field::<u16>(0, 3);
+      self.builder.get_pointer_field(0).set_text(value);
+    }
+    #[inline]
+    pub fn init_error(self, size: u32) -> ::capnp::text::Builder<'a> {
+      self.builder.set_data_field::<u16>(0, 3);
+      self.builder.get_pointer_field(0).init_text(size)
+    }
+    pub fn has_error(&self) -> bool {
+      if self.builder.get_data_field::<u16>(0) != 3 { return false; }
+      !self.builder.get_pointer_field(0).is_null()
+    }
+    #[inline]
+    pub fn get_disconnect(self) -> bool {
+      self.builder.get_bool_field(16)
+    }
+    #[inline]
+    pub fn set_disconnect(&mut self, value: bool)  {
+      self.builder.set_bool_field(16, value);
     }
     #[inline]
     pub fn which(self) -> ::core::result::Result<WhichBuilder<'a,>, ::capnp::NotInSchema> {
@@ -973,6 +1018,16 @@ pub mod event {
           ))
         }
         1 => {
+          ::core::result::Result::Ok(Raw(
+            ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(0), ::core::option::Option::None)
+          ))
+        }
+        2 => {
+          ::core::result::Result::Ok(Keepalive(
+            self.builder.get_data_field::<u64>(1)
+          ))
+        }
+        3 => {
           ::core::result::Result::Ok(Error(
             ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(0), ::core::option::Option::None)
           ))
@@ -992,13 +1047,15 @@ pub mod event {
   }
   mod _private {
     use capnp::private::layout;
-    pub const STRUCT_SIZE: layout::StructSize = layout::StructSize { data: 1, pointers: 1 };
+    pub const STRUCT_SIZE: layout::StructSize = layout::StructSize { data: 2, pointers: 1 };
     pub const TYPE_ID: u64 = 0x9548_53fe_ad30_9425;
   }
-  pub enum Which<A0,A1> {
+  pub enum Which<A0,A1,A2> {
     Message(A0),
-    Error(A1),
+    Raw(A1),
+    Keepalive(u64),
+    Error(A2),
   }
-  pub type WhichReader<'a,> = Which<::capnp::Result<crate::packet_capnp::message::Reader<'a>>,::capnp::Result<::capnp::text::Reader<'a>>>;
-  pub type WhichBuilder<'a,> = Which<::capnp::Result<crate::packet_capnp::message::Builder<'a>>,::capnp::Result<::capnp::text::Builder<'a>>>;
+  pub type WhichReader<'a,> = Which<::capnp::Result<crate::packet_capnp::message::Reader<'a>>,::capnp::Result<::capnp::text::Reader<'a>>,::capnp::Result<::capnp::text::Reader<'a>>>;
+  pub type WhichBuilder<'a,> = Which<::capnp::Result<crate::packet_capnp::message::Builder<'a>>,::capnp::Result<::capnp::text::Builder<'a>>,::capnp::Result<::capnp::text::Builder<'a>>>;
 }
