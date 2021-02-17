@@ -4,7 +4,6 @@ use std::net::{TcpListener, TcpStream};
 use mittere_lib::logger::Logger;
 use mittere_lib::make_logger;
 use std::sync::mpsc::{Sender, Receiver, channel};
-use threadpool::ThreadPool;
 use crate::command::command_processor;
 use crate::client::{handle_client, check_disconnected};
 use std::collections::HashMap;
@@ -17,11 +16,14 @@ use chrono::Local;
 use lazy_static::lazy_static;
 use std::sync::{Arc, Mutex};
 use mittere_lib::network::entry_response_io::write_invalid_entry_response;
+use std::ops::Add;
 
 pub const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 lazy_static! {
-    static ref global_logger: Arc<Mutex<Logger>> = Arc::new(Mutex::new(make_logger(true, true, true, false)));
+    pub static ref global_logger: Arc<Mutex<Logger>> = Arc::new(Mutex::new(make_logger(true, true, true, false)));
+    pub static ref connected_clients: Arc<Mutex<Vec<TcpStream>>> = Arc::new(Mutex::new(Vec::new())); // Why, God, do you let me do this?
+    pub static ref connections: Arc<Mutex<usize>> = Arc::new(Mutex::new(0usize));
 }
 
 mod client;
@@ -55,10 +57,6 @@ fn main() {
     // only takes the sender because the command executor doesnt need data from the main thread, only needs to send data
     thread::spawn(move || command_processor(cmd_sender));
 
-    // ==================== CONNECTION PROCESSES ====================
-    // how many connections there are
-    let mut current_connections = 0;
-
     // open the listener on the address
     let listener_result = TcpListener::bind(address.clone());
     if listener_result.is_err() {
@@ -69,22 +67,8 @@ fn main() {
     let listener = listener_result.expect("Uh oh! I made an oopsie! Please contact the developer and explain you got an error code 01S");
     global_logger.lock().unwrap().info(format!("Started listening on {}.", address));
 
-    // ==================== CLIENT HANDLING STRUCTURES ====================
-    // Channel for the clients to send data to the server (All clients sent data will be put into receiver)
-    let (client_sender, receiver): (Sender<String>, Receiver<String>) = channel();
-    // store all connected clients
-    let mut clients: Vec<TcpStream> = Vec::new();
-
-    // ==================== MAIN LOOP ====================
-    loop {
-        // ==================== COMMAND PROCESSOR DATA PROCESSING ====================
-        // at top of loop so incoming connections can be processed more spread out instead of
-        // handle incoming connections, then do everything else, then repeat
-        for s in &cmd_receiver {
-            // TODO: process command data
-        }
-
-        // ==================== INCOMING CONNECTION REQUESTS ====================
+    // ==================== INCOMING CONNECTION REQUESTS ====================
+    thread::spawn(move || {
         for stream in listener.incoming() {
             global_logger.lock().unwrap().info("Processing possible connection...");
             if stream.is_err() {
@@ -97,8 +81,8 @@ fn main() {
                 .expect("Uh oh! I made an oopsie! Please contact the developer and explain you got an error code 03S")
                 .ip().to_string();
 
-            // I am not sure why I allow the maximum users setting to be 0 if the user sets it but whatever :)
-            if (current_connections >= 0) && (current_connections > max_connections) {
+            // this is scuffed...
+            if (connections.lock().unwrap().gt(&0usize)) && (connections.lock().unwrap().gt(&max_connections)) {
                 write_invalid_entry_response(&s, String::from("The server is full!"));
 
                 global_logger.lock().unwrap().warn(format!("A connection was attempted by {} but was refused: server is full.", ip));
@@ -110,41 +94,30 @@ fn main() {
             let handler_s = s.try_clone();
 
             if handler_s.is_err() {
-                // TODO: send error packet
+                // TODO: send error entry response
                 global_logger.lock().unwrap().warn("Failed to clone connection for client handler, Not handling last connection.");
                 drop(s);
                 continue;
             }
 
-            clients.push(s);
-            let c_sender = client_sender.clone();
+            connected_clients.lock().unwrap().push(s);
 
             let motd_clone = MOTD.clone();
 
-            thread::spawn(move || handle_client(handler_s.unwrap(), c_sender.clone(), motd_clone));
-            current_connections += 1;
+            thread::spawn(move || handle_client(handler_s.unwrap(), motd_clone));
+
+            // still scuffed...
+            connections.lock().unwrap().add(1usize);
         }
+    });
 
-        pritnln!("Clients connected: {}", );
-
-        // ==================== CLIENT HANDLING ====================
-        // handle disconnected clients:
-        for mut x in 0..clients.len() {
-            let c = clients.get(x).unwrap();
-            println!("Processing Client at id {}", x);
-            if check_disconnected(c) {
-                println!("Attempting to remove client.");
-                clients.remove(x);
-                x -= 1;
-                current_connections -= 1;
-            }
-        }
-
-        // handle currently connected users
-        for s in &receiver {
-            // TODO: handle clients
+    // ==================== MAIN LOOP ====================
+    loop {
+        // ==================== COMMAND PROCESSOR DATA PROCESSING ====================
+        // at top of loop so incoming connections can be processed more spread out instead of
+        // handle incoming connections, then do everything else, then repeat
+        for s in &cmd_receiver {
+            // TODO: process command data
         }
     }
-
-    drop(listener); // close all connections that still remain
 }

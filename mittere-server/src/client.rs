@@ -6,6 +6,8 @@ use mittere_lib::network::login_data::LoginData;
 use crate::SERVER_VERSION;
 use mittere_lib::network::entry_response_io::{write_ping_entry_response, write_valid_entry_response, write_invalid_entry_response};
 use mittere_lib::network::event_io::read_event;
+use crate::{global_logger, connected_clients, connections};
+use std::ops::Sub;
 
 // returns true if disconnected
 pub fn check_disconnected(stream: &TcpStream) -> bool {
@@ -13,7 +15,10 @@ pub fn check_disconnected(stream: &TcpStream) -> bool {
     stream.peek(dummy_buffer).is_err()
 }
 
-pub fn handle_client(stream: TcpStream, sender: Sender<String>, motd: String) {
+pub fn handle_client(stream: TcpStream, motd: String) {
+
+    global_logger.lock().unwrap().important("A new client has appeared!");
+
     // handle EntryPoint
     let (login, version, err) = read_entry_point(&stream);
     if version.is_some() { // just a 'ping' to check the server is compatible
@@ -22,7 +27,7 @@ pub fn handle_client(stream: TcpStream, sender: Sender<String>, motd: String) {
         return;
     }
     if err.is_some() { // something went wrong
-        println!("Encountered an error reading entry point for client {}:\n{}", stream.peer_addr().unwrap().ip().to_string(), err.unwrap());
+        global_logger.lock().unwrap().error(format!("Encountered an error reading entry point for client {}:\n{}", stream.peer_addr().unwrap().ip().to_string(), err.unwrap()));
         write_invalid_entry_response(&stream, String::from("Failed to read entry point: invalid!"));
         return;
     }
@@ -32,8 +37,8 @@ pub fn handle_client(stream: TcpStream, sender: Sender<String>, motd: String) {
 
     // Send login response and process data
     let l: LoginData = login.unwrap();
-    println!("Login data:\n > username: {}\n > passwd: {}\n > signup: {}\n > signup key: {}",
-             l.username, l.passwd, l.signup, l.signup_key);
+    global_logger.lock().unwrap().info(format!("Login data:\n > username: {}\n > passwd: {}\n > signup: {}\n > signup key: {}",
+             l.username, l.passwd, l.signup, l.signup_key));
     write_valid_entry_response(&stream, motd); // TODO: Check valid login
 
     // Wait for scheduled config update packet
@@ -42,6 +47,8 @@ pub fn handle_client(stream: TcpStream, sender: Sender<String>, motd: String) {
     loop {
         // ensure the connection is still open
         if check_disconnected(&stream) {
+            connections.lock().unwrap().sub(1usize);
+            global_logger.lock().unwrap().important(format!("The client {} was disconnected.", stream.peer_addr().expect("uh oh!")));
             return; // if disconnected, return
         }
 
@@ -56,7 +63,7 @@ pub fn handle_client(stream: TcpStream, sender: Sender<String>, motd: String) {
             let name = m.name;
             let name_color = m.name_color;
         } else if error.is_some() {
-            
+            // TODO: process error
         }
 
     }

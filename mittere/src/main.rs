@@ -49,7 +49,7 @@ fn main() {
     if err.is_some() {
         println!("Valid: {}\nerror: {}", valid, err.unwrap());
     }
-
+    drop(stream); // stop the ping connection
 
     drop((tx, rx));
     

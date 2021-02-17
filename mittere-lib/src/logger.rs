@@ -137,14 +137,15 @@ impl Logger {
         let smsg = msg.into();
         // self.output_console("\x1b[0;93mWARN", msg);
         if self.output_console {
-            println!("{}[{}{}{}] [{}IMPORTANT{}] {}> {}{}",
-                     Color::Green, // timestamp [
+            println!("{}[{}{}{}] {}[{}IMPORTANT{}] {}> {}{}",
+                     Color::BrightBlack, // timestamp [
                      Color::White,       // timestamp color
                      self.get_timestamp(),                    // timestamp
-                     Color::Green, // timestamp ] and prefix [
+                     Color::BrightBlack, // timestamp ]
+                     Color::Green, // prefix [
                      Color::BrightGreen,       // prefix color
                      Color::Green, // prefix ]
-                     Color::White, // >
+                     Color::Green, // >
                      Color::BrightGreen, // message color
                      smsg                                      // display the message
             );

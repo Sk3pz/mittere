@@ -49,7 +49,8 @@ struct Message @0xac3bff3f53112559 {
 struct Event @0x954853fead309425 {
     union {
         message @0 :Message;
-        error @1 :Text;
+        raw @1 :Text; # TODO
+        error @2 :Text;
         # TODO: store other events here
     }
 }
