@@ -12,12 +12,6 @@ use mittere_lib::{systime, KEEPALIVE_INTERVAL};
 use chrono::Duration;
 use std::time::SystemTime;
 
-/// returns true if disconnected
-pub fn check_disconnected(stream: &TcpStream) -> bool {
-    let mut dummy_buffer: &mut [u8; 8] = &mut [0; 8];
-    stream.peek(dummy_buffer).is_err()
-}
-
 /// Properly send all the disconnect messages when a client disconnects
 /// used to remove duplicate code
 pub fn disconnect_client(username: String) {
@@ -62,6 +56,7 @@ pub fn handle_client(stream: TcpStream, motd: String) {
 
     // main client connection loop: Process Event packets
     loop {
+        // disconnect flag
         let mut disconnect = false;
 
         // ensure the connection is still open with keepalive
@@ -69,17 +64,20 @@ pub fn handle_client(stream: TcpStream, motd: String) {
         let duration = now.duration_since(last_keepalive).expect("Fatal error occurred: System time moved backwards! Are you a time traveler?")
             .as_secs();
         if duration >= KEEPALIVE_INTERVAL {
-            if !expecting_keepalive {
+            if !expecting_keepalive { // if there is not a keepalive expected, send a request
                 write_event_keepalive(&stream);
                 last_keepalive = SystemTime::now();
                 expecting_keepalive = true;
-            } else {
+            } else { // if there is a keepalive scheduled, disconnect the client
                 disconnect_client(username);
                 return;
             }
         }
 
         // listen for event packet
+        // TODO: Fix this issue
+        //  This can continue on listening until the server closes because it waits for the event packet (which could be a keepalive) until it receives something,
+        //  even if the connection is dead.
         let (msg, raw, time, error, disconnect_status) = read_event(&stream);
         disconnect = disconnect_status;
         if msg.is_some() {
@@ -105,18 +103,19 @@ pub fn handle_client(stream: TcpStream, motd: String) {
             // calculate ping
 
         } else {
-            if error.is_some() {
+            if error.is_some() { // if the client sent an error message, log it in the server (maybe implement error handling later?)
                 let err = error.unwrap();
                 global_logger.lock().unwrap().error(format!("Client {} has sent an error event: {}", username, err));
-            } else {
+            } else { // if the client didnt send an error, then an invalid packet was sent.
                 global_logger.lock().unwrap().error(format!("Client {} has sent an invalid packet or a fatal error has occured with the connection. They have been disconnected.", username));
             }
 
             disconnect = true;
         }
 
-        if disconnect {
+        if disconnect { // if the disconnect flag is set, disconnect the client
             disconnect_client(username);
+            drop(stream); // not needed, but for clarity
             return;
         }
 

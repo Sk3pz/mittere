@@ -40,7 +40,7 @@ fn main() {
     // TODO: Make configurable
     // default to 20 because that is within average usage (probably) (if they dont like it, then they can change it!)
     // -1 means 'infinite' (If they somehow have the ram for it, why not? :D)
-    let max_connections = 1;
+    let max_connections = 20;
 
     // get config values
     // TODO: make these values be configurable

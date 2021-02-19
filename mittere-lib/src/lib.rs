@@ -5,6 +5,7 @@ use std::path::Path;
 use chrono::Local;
 use chrono::format::{StrftimeItems, DelayedFormat};
 use std::time::{SystemTime, UNIX_EPOCH, Duration};
+use std::io::stdin;
 
 pub mod logger;
 pub mod network;
@@ -39,4 +40,10 @@ pub fn make_logger(show_verbose: bool, output_console: bool, output_file: bool, 
     logger.show_verbose_msgs(show_verbose);
 
     logger
+}
+
+pub fn read_console() -> String {
+    let mut line = String::new();
+    stdin().read_line(&mut line).expect("Error reading from terminal: could not read from input");
+    line
 }
