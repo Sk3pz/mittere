@@ -38,18 +38,17 @@ struct EntryResponse @0xc792e4d7db27ca82 {
     }
 }
 
-# A message struct to be sent when a client sends a message
-struct Message @0xac3bff3f53112559 {
+# A config update struct that stores data about the client to update the server
+struct ConfigUpdate @0x8e4b3bfa731587c3 {
     displayName @0 :Text;
     nameColor @1 :Text;
     msgColor @2 :Text;
-    msg @3 :Text;
 }
 
 struct Event @0x954853fead309425 {
     union {
-        message @0 :Message;
-        raw @1 :Text;
+        message @0 :Text;
+        config @1 :ConfigUpdate;
         keepalive @2 :UInt64;
         error @3 :Text;
     }

@@ -3,31 +3,30 @@ use capnp::message::{TypedReader, Builder, HeapAllocator};
 use crate::packet_capnp::event;
 use capnp::serialize;
 use better_term::style::Color;
-use crate::network::msg_data::MessageData;
+use crate::network::cfg_data::ConfigData;
 use crate::systime;
 
-/// Sends a message event to the server
-pub fn write_event_message(mut stream: &TcpStream, msg_str: String, display_name: String, name_color: Color, msg_color: Color) -> ::capnp::Result<()> {
+/// Sends a message event
+pub fn write_event_message(mut stream: &TcpStream, msg_str: String) -> ::capnp::Result<()> {
     let mut message = Builder::new_default();
     {
         let mut ev = message.init_root::<event::Builder>();
-        let mut msg = ev.init_message();
-        {
-            msg.set_msg(msg_str.as_str());
-            msg.set_display_name(display_name.as_str());
-            msg.set_msg_color(msg_color.as_fg().as_str());
-            msg.set_name_color(name_color.as_fg().as_str());
-        }
+        ev.set_message(msg_str.as_str());
     }
     serialize::write_message(&mut stream, &message)
 }
 
-/// Sends a raw message to clients (no username or color data, just the message)
-pub fn write_event_raw_msg(mut stream: &TcpStream, raw_msg: String) -> ::capnp::Result<()> {
+/// Sends a message event to the server
+pub fn write_cfg_update(mut stream: &TcpStream, display_name: String, display_color: String, msg_color: String) -> ::capnp::Result<()> {
     let mut message = Builder::new_default();
     {
         let mut ev = message.init_root::<event::Builder>();
-        ev.set_raw(raw_msg.as_str());
+        let mut cfg = ev.init_config();
+        {
+            cfg.set_display_name(display_color.as_str());
+            cfg.set_msg_color(msg_color.as_str());
+            cfg.set_name_color(display_color.as_str());
+        }
     }
     serialize::write_message(&mut stream, &message)
 }
@@ -53,8 +52,8 @@ pub fn write_event_error(mut stream: &TcpStream, error: String) -> ::capnp::Resu
 }
 
 /// Reads an event packet, and returns it's data
-/// Returns Message data, raw, keepalive_time, an error, and a disconnect flag
-pub fn read_event(mut stream: &TcpStream) -> (Option<MessageData>, Option<String>, Option<u64>, Option<String>, bool) {
+/// Returns message, config data, keepalive_time, an error, and a disconnect flag
+pub fn read_event(mut stream: &TcpStream) -> (Option<String>, Option<ConfigData>, Option<u64>, Option<String>, bool) {
     let mut needs_to_disconnect = false;
 
     // read the event
@@ -71,27 +70,26 @@ pub fn read_event(mut stream: &TcpStream) -> (Option<MessageData>, Option<String
     // the event is a Cap'n Proto Union, so go through which type of event it is
     return match ev.which() {
         Ok(event::Message(msg)) => {
-            let raw_md = msg.unwrap();
-            let md = MessageData {
-                msg: raw_md.get_msg().unwrap().to_string(),
-                color: raw_md.get_msg_color().unwrap().to_string(),
-                name: raw_md.get_display_name().unwrap().to_string(),
-                name_color: raw_md.get_name_color().unwrap().to_string()
-            };
-            (Some(md), None, None, None, needs_to_disconnect)
+            (Some(msg.unwrap().to_string()), None, None, None, needs_to_disconnect)
         }
-        Ok(event::Raw(raw)) => {
-            (None, Some(raw.unwrap().to_string()), None, None, needs_to_disconnect)
+        Ok(event::Config(cfg)) => {
+            let raw_cfg = cfg.unwrap();
+            let cfg = ConfigData {
+                display_name: raw_cfg.get_display_name().unwrap().to_string(),
+                name_color: raw_cfg.get_name_color().unwrap().to_string(),
+                msg_color: raw_cfg.get_msg_color().unwrap().to_string()
+            };
+            (None, Some(cfg), None, None, needs_to_disconnect)
         }
         Ok(event::Keepalive(st)) => {
             (None, None, Some(st), None, ev.get_disconnect())
         }
         Ok(event::Error(err)) => {
-            (None, Some(err.unwrap().to_string()), None, None, needs_to_disconnect)
+            (None, None, None, Some(err.unwrap().to_string()), needs_to_disconnect)
         }
         Err(::capnp::NotInSchema(_)) => {
             // todo: error
-            (None, Some(String::from("Invalid EntryPoint - no version or login data found!")), None, None, needs_to_disconnect)
+            (None, None, None, Some(String::from("Invalid EntryPoint - no version or login data found!")), needs_to_disconnect)
         }
     }
 }

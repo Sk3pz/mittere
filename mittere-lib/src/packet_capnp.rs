@@ -613,7 +613,7 @@ pub mod entry_response {
   pub type WhichBuilder<'a,> = Which<::capnp::Result<::capnp::text::Builder<'a>>,::capnp::Result<::capnp::text::Builder<'a>>,::capnp::Result<::capnp::text::Builder<'a>>>;
 }
 
-pub mod message {
+pub mod config_update {
   #[derive(Copy, Clone)]
   pub struct Owned(());
   impl <'a> ::capnp::traits::Owned<'a> for Owned { type Reader = Reader<'a>; type Builder = Builder<'a>; }
@@ -679,13 +679,6 @@ pub mod message {
     }
     pub fn has_msg_color(&self) -> bool {
       !self.reader.get_pointer_field(2).is_null()
-    }
-    #[inline]
-    pub fn get_msg(self) -> ::capnp::Result<::capnp::text::Reader<'a>> {
-      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(3), ::core::option::Option::None)
-    }
-    pub fn has_msg(&self) -> bool {
-      !self.reader.get_pointer_field(3).is_null()
     }
   }
 
@@ -782,21 +775,6 @@ pub mod message {
     pub fn has_msg_color(&self) -> bool {
       !self.builder.get_pointer_field(2).is_null()
     }
-    #[inline]
-    pub fn get_msg(self) -> ::capnp::Result<::capnp::text::Builder<'a>> {
-      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(3), ::core::option::Option::None)
-    }
-    #[inline]
-    pub fn set_msg(&mut self, value: ::capnp::text::Reader<'_>)  {
-      self.builder.get_pointer_field(3).set_text(value);
-    }
-    #[inline]
-    pub fn init_msg(self, size: u32) -> ::capnp::text::Builder<'a> {
-      self.builder.get_pointer_field(3).init_text(size)
-    }
-    pub fn has_msg(&self) -> bool {
-      !self.builder.get_pointer_field(3).is_null()
-    }
   }
 
   pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
@@ -809,13 +787,13 @@ pub mod message {
   }
   mod _private {
     use capnp::private::layout;
-    pub const STRUCT_SIZE: layout::StructSize = layout::StructSize { data: 0, pointers: 4 };
-    pub const TYPE_ID: u64 = 0xac3b_ff3f_5311_2559;
+    pub const STRUCT_SIZE: layout::StructSize = layout::StructSize { data: 0, pointers: 3 };
+    pub const TYPE_ID: u64 = 0x8e4b_3bfa_7315_87c3;
   }
 }
 
 pub mod event {
-  pub use self::Which::{Message,Raw,Keepalive,Error};
+  pub use self::Which::{Message,Config,Keepalive,Error};
 
   #[derive(Copy, Clone)]
   pub struct Owned(());
@@ -866,7 +844,7 @@ pub mod event {
       if self.reader.get_data_field::<u16>(0) != 0 { return false; }
       !self.reader.get_pointer_field(0).is_null()
     }
-    pub fn has_raw(&self) -> bool {
+    pub fn has_config(&self) -> bool {
       if self.reader.get_data_field::<u16>(0) != 1 { return false; }
       !self.reader.get_pointer_field(0).is_null()
     }
@@ -887,7 +865,7 @@ pub mod event {
           ))
         }
         1 => {
-          ::core::result::Result::Ok(Raw(
+          ::core::result::Result::Ok(Config(
             ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0), ::core::option::Option::None)
           ))
         }
@@ -955,30 +933,30 @@ pub mod event {
       self.builder.into_reader().total_size()
     }
     #[inline]
-    pub fn set_message(&mut self, value: crate::packet_capnp::message::Reader<'_>) -> ::capnp::Result<()> {
+    pub fn set_message(&mut self, value: ::capnp::text::Reader<'_>)  {
       self.builder.set_data_field::<u16>(0, 0);
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value, false)
+      self.builder.get_pointer_field(0).set_text(value);
     }
     #[inline]
-    pub fn init_message(self, ) -> crate::packet_capnp::message::Builder<'a> {
+    pub fn init_message(self, size: u32) -> ::capnp::text::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 0);
-      ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), 0)
+      self.builder.get_pointer_field(0).init_text(size)
     }
     pub fn has_message(&self) -> bool {
       if self.builder.get_data_field::<u16>(0) != 0 { return false; }
       !self.builder.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn set_raw(&mut self, value: ::capnp::text::Reader<'_>)  {
+    pub fn set_config(&mut self, value: crate::packet_capnp::config_update::Reader<'_>) -> ::capnp::Result<()> {
       self.builder.set_data_field::<u16>(0, 1);
-      self.builder.get_pointer_field(0).set_text(value);
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value, false)
     }
     #[inline]
-    pub fn init_raw(self, size: u32) -> ::capnp::text::Builder<'a> {
+    pub fn init_config(self, ) -> crate::packet_capnp::config_update::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 1);
-      self.builder.get_pointer_field(0).init_text(size)
+      ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), 0)
     }
-    pub fn has_raw(&self) -> bool {
+    pub fn has_config(&self) -> bool {
       if self.builder.get_data_field::<u16>(0) != 1 { return false; }
       !self.builder.get_pointer_field(0).is_null()
     }
@@ -1018,7 +996,7 @@ pub mod event {
           ))
         }
         1 => {
-          ::core::result::Result::Ok(Raw(
+          ::core::result::Result::Ok(Config(
             ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(0), ::core::option::Option::None)
           ))
         }
@@ -1052,10 +1030,10 @@ pub mod event {
   }
   pub enum Which<A0,A1,A2> {
     Message(A0),
-    Raw(A1),
+    Config(A1),
     Keepalive(u64),
     Error(A2),
   }
-  pub type WhichReader<'a,> = Which<::capnp::Result<crate::packet_capnp::message::Reader<'a>>,::capnp::Result<::capnp::text::Reader<'a>>,::capnp::Result<::capnp::text::Reader<'a>>>;
-  pub type WhichBuilder<'a,> = Which<::capnp::Result<crate::packet_capnp::message::Builder<'a>>,::capnp::Result<::capnp::text::Builder<'a>>,::capnp::Result<::capnp::text::Builder<'a>>>;
+  pub type WhichReader<'a,> = Which<::capnp::Result<::capnp::text::Reader<'a>>,::capnp::Result<crate::packet_capnp::config_update::Reader<'a>>,::capnp::Result<::capnp::text::Reader<'a>>>;
+  pub type WhichBuilder<'a,> = Which<::capnp::Result<::capnp::text::Builder<'a>>,::capnp::Result<crate::packet_capnp::config_update::Builder<'a>>,::capnp::Result<::capnp::text::Builder<'a>>>;
 }

@@ -5,7 +5,7 @@ use mittere_lib::logger::Logger;
 use mittere_lib::make_logger;
 use std::sync::mpsc::{Sender, Receiver, channel};
 use crate::command::command_processor;
-use crate::client::{handle_client, check_disconnected};
+use crate::client::handle_client;
 use std::collections::HashMap;
 use std::thread;
 
@@ -17,12 +17,13 @@ use lazy_static::lazy_static;
 use std::sync::{Arc, Mutex};
 use mittere_lib::network::entry_response_io::write_invalid_entry_response;
 use std::ops::Add;
+use uuid::Uuid;
 
 pub const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 lazy_static! {
     pub static ref global_logger: Arc<Mutex<Logger>> = Arc::new(Mutex::new(make_logger(true, true, true, false)));
-    pub static ref connected_clients: Arc<Mutex<Vec<TcpStream>>> = Arc::new(Mutex::new(Vec::new())); // Why, God, do you let me do this?
+    pub static ref connected_clients: Arc<Mutex<HashMap<Uuid, TcpStream>>> = Arc::new(Mutex::new(HashMap::new()));
     pub static ref connections: Arc<Mutex<usize>> = Arc::new(Mutex::new(0usize));
 }
 
@@ -44,11 +45,11 @@ fn main() {
 
     // get config values
     // TODO: make these values be configurable
-    let ip = "localhost"; // IP to listen on
-    let port = "8080";    // Port to listen on
+    let ip = "2600:6c56:6900:9682:182:7891:af68:b493"; // IP to listen on
+    let port = "25565";    // Port to listen on
     let address = format!("{}:{}", ip, port);
 
-    // TODO: can you guess what this needs to be? Configurable!
+    // TODO: make this configurable in 'motd.txt'
     let MOTD = String::from("==============================\nWelcome to the Mittere server!\n==============================");
 
     // ==================== COMMAND EXECUTION ====================
@@ -60,7 +61,7 @@ fn main() {
     // open the listener on the address
     let listener_result = TcpListener::bind(address.clone());
     if listener_result.is_err() {
-        // TODO: give a better explanation as to what happened with more info to help the user fix the issue
+        // TODO: give a better explanation as to what happened with more info to help the user fix the issue?
         global_logger.lock().unwrap().failure(format!("Could not start TCP Listener on {}", address));
         return;
     }
@@ -70,7 +71,7 @@ fn main() {
     // ==================== INCOMING CONNECTION REQUESTS ====================
     thread::spawn(move || {
         for stream in listener.incoming() {
-            global_logger.lock().unwrap().info("Processing possible connection...");
+            global_logger.lock().unwrap().verbose("Processing possible connection...");
             if stream.is_err() {
                 global_logger.lock().unwrap().warn("Failed to accept client. Continuing to listen.");
                 continue;
@@ -89,22 +90,25 @@ fn main() {
                 drop(s);
                 continue;
             }
-            global_logger.lock().unwrap().info(format!("Accepted connection: {}.", ip));
+            global_logger.lock().unwrap().verbose(format!("Accepted connection: {}.", ip));
 
             let handler_s = s.try_clone();
 
             if handler_s.is_err() {
-                // TODO: send error entry response
                 global_logger.lock().unwrap().warn("Failed to clone connection for client handler, Not handling last connection.");
+                // send an entry response for the client to read
+                write_invalid_entry_response(&s, String::from("A connection error occurred on the server. If this continues, the server may need to be restarted."));
                 drop(s);
                 continue;
             }
 
-            connected_clients.lock().unwrap().push(s);
+            let uuid = Uuid::new_v4();
+
+            connected_clients.lock().unwrap().insert(uuid, s);
 
             let motd_clone = MOTD.clone();
 
-            thread::spawn(move || handle_client(handler_s.unwrap(), motd_clone));
+            thread::spawn(move || handle_client(handler_s.unwrap(), uuid, motd_clone));
 
             // still scuffed...
             connections.lock().unwrap().add(1usize);

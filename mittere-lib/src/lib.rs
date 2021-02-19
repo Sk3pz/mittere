@@ -10,6 +10,14 @@ use std::io::stdin;
 pub mod logger;
 pub mod network;
 pub mod packet_capnp;
+pub mod config;
+
+#[cfg(target_os = "macos")]
+pub const CLEAR: &str = "clear";
+#[cfg(target_os = "linux")]
+pub const CLEAR: &str = "clear";
+#[cfg(target_os = "windows")]
+pub const CLEAR: &str = "cls";
 
 pub const KEEPALIVE_INTERVAL: u64 = 20; // Time in seconds to send keepalive packet
 
@@ -42,6 +50,9 @@ pub fn make_logger(show_verbose: bool, output_console: bool, output_file: bool, 
     logger
 }
 
+// TODO: This currently is somewhat broken, if a message is sent while a client is typing, it will cut the input in half,
+//  although this glitch is only visual.
+// TODO: May have to write custom output system :'( (or wait until GFX update!)
 pub fn read_console() -> String {
     let mut line = String::new();
     stdin().read_line(&mut line).expect("Error reading from terminal: could not read from input");
