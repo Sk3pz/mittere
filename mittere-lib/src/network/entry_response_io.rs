@@ -36,7 +36,11 @@ pub fn write_ping_entry_response(mut stream: &TcpStream, client_valid: bool, ver
 
 /// returns valid, motd, version, error
 pub fn read_entry_response(mut stream: &TcpStream) -> (bool, Option<String>, Option<String>, Option<String>) {
-    let message_reader = serialize::read_message(&mut stream, ::capnp::message::ReaderOptions::new()).expect("Uh oh!");
+    let message_reader_result = serialize::read_message(&mut stream, ::capnp::message::ReaderOptions::new());
+    if message_reader_result.is_err() {
+        return (false, None, None, Some(String::from("Could not connect to server.")));
+    }
+    let message_reader = message_reader_result.unwrap();
     let er = message_reader.get_root::<entry_response::Reader>().expect("Uh oh 2!");
 
     return match er.which() {

@@ -28,7 +28,7 @@ fn main() {
 
     // get config values
     // TODO: make these values be configurable or asked for in the login process
-    let ip = "2600:6c56:6900:9682:182:7891:af68:b493";
+    let ip = "x.x.x.x";
     let port = "25565";
     let address = format!("{}:{}", ip, port);
 
@@ -54,7 +54,7 @@ fn main() {
     drop(stream); // stop the ping connection
 
     // TODO: Login stuff here
-    let username = String::from("SomeRandomUsername");
+    let username = String::from("Hroc");
     let password = String::from("SomeRandomPassword");
     let signup_key = String::from("SomeRandomKey");
     let signup = true;

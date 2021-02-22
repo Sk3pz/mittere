@@ -45,7 +45,7 @@ fn main() {
 
     // get config values
     // TODO: make these values be configurable
-    let ip = "2600:6c56:6900:9682:182:7891:af68:b493"; // IP to listen on
+    let ip = "0.0.0.0"; // IP to listen on
     let port = "25565";    // Port to listen on
     let address = format!("{}:{}", ip, port);
 
