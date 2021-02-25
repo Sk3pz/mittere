@@ -28,7 +28,7 @@ fn main() {
 
     // get config values
     // TODO: make these values be configurable or asked for in the login process
-    let ip = "x.x.x.x";
+    let ip = "localhost";
     let port = "25565";
     let address = format!("{}:{}", ip, port);
 

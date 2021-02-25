@@ -12,12 +12,15 @@ use std::thread;
 use mittere_lib::packet_capnp::{entry_point, entry_response, login, event};
 use std::fs::File;
 use chrono::Local;
+use serde::Deserialize;
 
 use lazy_static::lazy_static;
 use std::sync::{Arc, Mutex};
 use mittere_lib::network::entry_response_io::write_invalid_entry_response;
 use std::ops::Add;
 use uuid::Uuid;
+use std::path::Path;
+use std::io::Read;
 
 pub const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -27,14 +30,46 @@ lazy_static! {
     pub static ref connections: Arc<Mutex<usize>> = Arc::new(Mutex::new(0usize));
 }
 
+#[derive(Debug, Deserialize)]
+struct Config {
+    general: Option<General>,
+    server: Option<Server>,
+}
+
+#[derive(Debug, Deserialize)]
+struct General {
+    max_connections: Option<i64>,
+    motd: Option<String>
+}
+
+#[derive(Debug, Deserialize)]
+struct Server {
+    ip: Option<String>,
+    port: Option<String>
+}
+
 mod client;
 mod command;
 
 fn main() {
-    // ==================== LOGGER ====================
-    // Create a logger to output to console
-    //let verbose = true;
-    //let mut logger = make_logger(verbose, true, true, true);
+    // ==================== Config Files ====================
+    let cdir = std::env::current_dir().expect("Error in attempting to get config file: no access.");
+    let current_dir = cdir.as_path().to_str().expect("Error in attempting to get config file: no access.");
+    let config_path = format!("{}/config.toml", current_dir);
+    let mut config_content = String::new();
+    match File::open(config_path.as_str()) {
+        Ok(mut file) => {
+            file.read_to_string(&mut config_content).expect("Failed to read config - please make sure config.toml exists in `~/mittere-config/` and that the server has permissions.");
+        }
+        Err(error) => {
+            global_logger.lock().unwrap().error(format!("Failed to open config file, please make sure the server has permission to access {}/config.toml, and restart the server. (Maybe run as administrator?)",
+                                                          current_dir));
+            println!("What went wrong: {}", error);
+            return;
+        }
+    }
+
+    let config: Config = toml::from_str(config_content.as_str()).expect("Could not read config: Please make sure it is valid and has all keys defined, according to the server-config-example.toml");
 
     // ==================== CONFIGURATION ====================
     // The maximum connections the server can have at one time

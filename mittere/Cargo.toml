@@ -10,3 +10,5 @@ mittere-lib = { path="../mittere-lib" }
 chrono = "*"
 capnp = "*"
 capnpc = "*"
+toml = "*"
+serde = { version = "*", features = ["derive"] }

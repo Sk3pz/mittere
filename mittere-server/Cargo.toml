@@ -12,4 +12,5 @@ capnp = "*"
 capnpc = "*"
 lazy_static = "*"
 uuid = { version = "0.8", features = ["serde", "v4"] }
-async-std = "*"
+toml = "*"
+serde = { version = "*", features = ["derive"] }

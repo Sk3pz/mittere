@@ -1,0 +1,19 @@
+# This is an example configuration for the Mittere server
+
+# The general section is for misc values
+[general]
+# max-connections: the maximum amount of clients that can connect at 1 time
+# -1 = infinite amount (Not recommended unless you have a supercomputer!)
+max-connections = -1
+# Motd: the message of the day that clients will see when first connecting
+# uses ANSI color codes prepended with \x1b (If you dont know what this means, dont use it! A better color reading system is coming soon!)
+motd = "==============================\nWelcome to the Mittere server!\n=============================="
+
+# The values for the server
+[server]
+# ip: the ip to listen on
+# defaults to 0.0.0.0 and will listen on your machines current IP
+ip = "0.0.0.0"
+# port: the port to listen on
+# defaults to 2277
+port = "2277"
