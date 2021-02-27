@@ -27,6 +27,11 @@ pub fn disconnect_client(uuid: Uuid, username: String) {
     global_logger.lock().unwrap().info(format!("Client {} has disconnected", username));
     send_to_clients(format!("{}{} has disconnected.", Color::BrightYellow, username));
     connected_clients.lock().unwrap().remove(&uuid);
+    if connections.lock().unwrap() > 0 {
+        connections.lock().unwrap().sub(1usize);
+    } else {
+        global_logger.lock().unwrap().warn("User disconnected when there were no clients connected: The maximum connections value will not work properly.");
+    }
 }
 
 pub fn handle_client(stream: TcpStream, uuid: Uuid, motd: String) {

@@ -2,12 +2,12 @@
 
 use std::net::{TcpListener, TcpStream};
 use mittere_lib::logger::Logger;
-use mittere_lib::make_logger;
+use mittere_lib::{make_logger, unwrap_or_default};
 use std::sync::mpsc::{Sender, Receiver, channel};
 use crate::command::command_processor;
 use crate::client::handle_client;
 use std::collections::HashMap;
-use std::thread;
+use std::{thread, fs};
 
 use mittere_lib::packet_capnp::{entry_point, entry_response, login, event};
 use std::fs::File;
@@ -21,71 +21,66 @@ use std::ops::Add;
 use uuid::Uuid;
 use std::path::Path;
 use std::io::Read;
+use crate::file::read_config;
 
 pub const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 lazy_static! {
     pub static ref global_logger: Arc<Mutex<Logger>> = Arc::new(Mutex::new(make_logger(true, true, true, false)));
     pub static ref connected_clients: Arc<Mutex<HashMap<Uuid, TcpStream>>> = Arc::new(Mutex::new(HashMap::new()));
-    pub static ref connections: Arc<Mutex<usize>> = Arc::new(Mutex::new(0usize));
-}
-
-#[derive(Debug, Deserialize)]
-struct Config {
-    general: Option<General>,
-    server: Option<Server>,
-}
-
-#[derive(Debug, Deserialize)]
-struct General {
-    max_connections: Option<i64>,
-    motd: Option<String>
-}
-
-#[derive(Debug, Deserialize)]
-struct Server {
-    ip: Option<String>,
-    port: Option<String>
+    pub static ref connections: Arc<Mutex<usize>> = Arc::new(Mutex::new(0usize)); // TODO: rework
 }
 
 mod client;
 mod command;
+mod file;
 
 fn main() {
     // ==================== Config Files ====================
     let cdir = std::env::current_dir().expect("Error in attempting to get config file: no access.");
     let current_dir = cdir.as_path().to_str().expect("Error in attempting to get config file: no access.");
-    let config_path = format!("{}/config.toml", current_dir);
-    let mut config_content = String::new();
-    match File::open(config_path.as_str()) {
-        Ok(mut file) => {
-            file.read_to_string(&mut config_content).expect("Failed to read config - please make sure config.toml exists in `~/mittere-config/` and that the server has permissions.");
-        }
-        Err(error) => {
-            global_logger.lock().unwrap().error(format!("Failed to open config file, please make sure the server has permission to access {}/config.toml, and restart the server. (Maybe run as administrator?)",
-                                                          current_dir));
-            println!("What went wrong: {}", error);
-            return;
-        }
-    }
+    let config_path = format!("{}/mittere-config/server-config.toml", current_dir);
+    let raw_path = Path::new(&config_path);
 
-    let config: Config = toml::from_str(config_content.as_str()).expect("Could not read config: Please make sure it is valid and has all keys defined, according to the server-config-example.toml");
+    let mut config = read_config(raw_path, String::from("# This is an example configuration for the Mittere server\
+    \n
+    \n# The general section is for misc values\
+    \n[general]\
+    \n# connections: the maximum amount of clients that can connect at 1 time\
+    \n# -1 = infinite amount (Not recommended unless you have a supercomputer!)\
+    \nconnections = -1\
+    \n# Motd: the message of the day that clients will see when first connecting\
+    \n# uses ANSI color codes (If you dont know what this means, dont use it! A better color reading system is coming soon!)\
+    \nmotd = \"==============================\\nWelcome to the Mittere server!\\n==============================\"
+    \n\n# The values for the server\
+    \n[server]\
+    \n# ip: the ip to listen on\
+    \n# defaults to 0.0.0.0 and will listen on your machines current IP\
+    \nip = \"0.0.0.0\"
+    \n# port: the port to listen on\
+    \n# defaults to 2277\
+    \nport = \"2277\""));
+
+    let general_config = config.general.expect("Could not find [general] in config!");
+    let server_config = config.server.expect("Could not find [server] in config!");
 
     // ==================== CONFIGURATION ====================
     // The maximum connections the server can have at one time
     // TODO: Make configurable
     // default to 20 because that is within average usage (probably) (if they dont like it, then they can change it!)
     // -1 means 'infinite' (If they somehow have the ram for it, why not? :D)
-    let max_connections = 20;
+    let max_connections_cfg = general_config.connections.expect("Could not find general.max-connections in the config!");
+    let infi_conn = max_connections_cfg < 0;
+    let max_connections = if max_connections_cfg > 0 { max_connections_cfg as usize } else { 0 };
 
     // get config values
     // TODO: make these values be configurable
-    let ip = "0.0.0.0"; // IP to listen on
-    let port = "25565";    // Port to listen on
+    let ip = unwrap_or_default(server_config.ip, String::from("0.0.0.0")); // IP to listen on
+    let port = unwrap_or_default(server_config.port, String::from("2277"));    // Port to listen on
     let address = format!("{}:{}", ip, port);
 
     // TODO: make this configurable in 'motd.txt'
-    let MOTD = String::from("==============================\nWelcome to the Mittere server!\n==============================");
+    let MOTD = unwrap_or_default(general_config.motd, String::from("Welcome to the Mittere server!"));
 
     // ==================== COMMAND EXECUTION ====================
     // Start command execution thread
@@ -118,7 +113,7 @@ fn main() {
                 .ip().to_string();
 
             // this is scuffed...
-            if (connections.lock().unwrap().gt(&0usize)) && (connections.lock().unwrap().gt(&max_connections)) {
+            if (!infi_conn) || ((connections.lock().unwrap().gt(&0usize)) && (connections.lock().unwrap().gt(&max_connections))) {
                 write_invalid_entry_response(&s, String::from("The server is full!"));
 
                 global_logger.lock().unwrap().warn(format!("A connection was attempted by {} but was refused: server is full.", ip));

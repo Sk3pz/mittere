@@ -12,6 +12,7 @@ use mittere_lib::network::entry_response_io::read_entry_response;
 use std::thread;
 use crate::input::input_handler;
 use mittere_lib::network::event_io::{read_event, write_event_error, write_event_keepalive};
+use std::path::Path;
 
 fn connection_err(ip: &str, port: &str) {
     eprintln!("{}Failed to connect to the Mittere server: The connection is not available or was refused. \
@@ -29,7 +30,7 @@ fn main() {
     // get config values
     // TODO: make these values be configurable or asked for in the login process
     let ip = "localhost";
-    let port = "25565";
+    let port = "2277";
     let address = format!("{}:{}", ip, port);
 
     // Establish a temporary connection to check if the server is up and if it is on a compatible version

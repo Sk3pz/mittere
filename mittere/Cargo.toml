@@ -12,3 +12,4 @@ capnp = "*"
 capnpc = "*"
 toml = "*"
 serde = { version = "*", features = ["derive"] }
+iced = "*"

@@ -11,6 +11,7 @@ pub mod logger;
 pub mod network;
 pub mod packet_capnp;
 pub mod config;
+pub mod file;
 
 #[cfg(target_os = "macos")]
 pub const CLEAR: &str = "clear";
@@ -30,6 +31,13 @@ pub fn systime() -> Duration {
 pub fn to_epoch(time: SystemTime) -> Duration {
     time.duration_since(UNIX_EPOCH)
         .expect("Fatal error occurred: System time moved backwards! Are you a time traveler?")
+}
+
+pub fn unwrap_or_default<T>(opt: Option<T>, default: T) -> T {
+    match opt {
+        Some(t) => t,
+        None => default
+    }
 }
 
 pub fn make_logger(show_verbose: bool, output_console: bool, output_file: bool, panic_on_err: bool) -> Logger {
