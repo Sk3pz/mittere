@@ -1,6 +1,6 @@
 [package]
 name = "mittere"
-version = "1.0.0-rc0"
+version = "1.0.0"
 authors = ["Eric (Skepz)"]
 edition = "2018"
 
@@ -12,4 +12,6 @@ capnp = "*"
 capnpc = "*"
 toml = "*"
 serde = { version = "*", features = ["derive"] }
-iced = "*"
+vulkano = "*"
+vulkano-win = "*"
+winit = "*"

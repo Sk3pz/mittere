@@ -1,6 +1,7 @@
 // Mittere client
 
 mod input;
+mod gui;
 
 use std::net::TcpStream;
 use std::sync::mpsc::{Sender, Receiver, channel};
@@ -19,10 +20,14 @@ fn connection_err(ip: &str, port: &str) {
         Maybe check the IP and Port?\n > IP: {}\n > PORT: {}", Color::Red, ip, port);
 }
 
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 fn main() {
 
+    // start window
+
+
     // get the client version from the environment
-    let version = String::from(env!("CARGO_PKG_VERSION"));
 
     // create channel for communicating between the input thread and the main loop
     let (tx, rx): (Sender<String>, Receiver<String>) = channel();
@@ -40,7 +45,7 @@ fn main() {
         return;
     }
     let mut stream = stream_result.expect("Uh oh! I made an oopsie! Please contact the developer and explain you got an error code 01C");
-    write_entry_point_ver(&stream, version); // send the "ping" packet
+    write_entry_point_ver(&stream, VERSION.to_string()); // send the "ping" packet
     let (valid, _, server_version, err) = read_entry_response(&stream);
     if server_version.is_some() {
         println!("Valid: {}\nserver version: {}", valid, server_version.unwrap());
