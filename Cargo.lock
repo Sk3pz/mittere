@@ -58,6 +58,7 @@ name = "client"
 version = "0.1.0"
 dependencies = [
  "better_term",
+ "common",
  "send-it",
 ]
 
@@ -213,6 +214,7 @@ name = "server"
 version = "0.1.0"
 dependencies = [
  "better_term",
+ "common",
  "send-it",
  "serde",
  "tokio",

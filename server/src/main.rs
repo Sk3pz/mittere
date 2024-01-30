@@ -1,4 +1,6 @@
 use std::net::TcpListener;
+use std::sync::{Arc, Mutex};
+use common::Message;
 use crate::connection::handle_connection;
 
 mod config;
@@ -17,7 +19,6 @@ async fn main() {
         }
     };
 
-
     let connection_info = config.conn;
 
     // setup the listener
@@ -28,6 +29,9 @@ async fn main() {
             std::process::exit(1);
         }
     };
+
+    // create the message history buffer
+    let history: Arc<Mutex<Vec<Message>>> = Arc::new(Mutex::new(Vec::new()));
 
     // start the listener
     for stream in listener.incoming() {
@@ -40,9 +44,12 @@ async fn main() {
             }
         };
 
+        // clone history to send to the client handler
+        let history_clone = history.clone();
+
         // send the connection to a new thread
         tokio::spawn(async move {
-            if let Err(e) = handle_connection(stream) {
+            if let Err(e) = handle_connection(stream, history_clone){
                 nay!("Error handling connection: {}", e);
             }
         });

@@ -9,6 +9,7 @@ repository = "https://github.com/sk3pz/mittere"
 readme = "../README.md"
 
 [dependencies]
+common = { path = "../common" }
 better_term = { version = "*", features = ["input", "output", "fancy"] }
 send-it = "*"
 tokio = { version = "*", features = ["rt", "rt-multi-thread", "macros"] }
