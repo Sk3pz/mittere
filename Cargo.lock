@@ -3,5 +3,37 @@
 version = 3
 
 [[package]]
-name = "mittere"
+name = "better_term"
+version = "1.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6b31505c3f1fc81fa86afbaffe26d5d310c2cccc1bd75f884f9fcb26ef6150ba"
+
+[[package]]
+name = "client"
 version = "0.1.0"
+dependencies = [
+ "better_term",
+ "send-it",
+]
+
+[[package]]
+name = "common"
+version = "0.1.0"
+dependencies = [
+ "better_term",
+ "send-it",
+]
+
+[[package]]
+name = "send-it"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "41d770f4327ee4b367a4ee57055e56a6ef76540c7d1ad49879fc13942a080666"
+
+[[package]]
+name = "server"
+version = "0.1.0"
+dependencies = [
+ "better_term",
+ "send-it",
+]
