@@ -5,7 +5,7 @@ use std::sync::atomic::AtomicBool;
 use std::net::TcpStream;
 use std::sync::Arc;
 use tokio::runtime::Runtime;
-use crate::channel::ClientChannel;
+use crate::channel::Channel;
 use crate::{hey, say};
 use crate::message::{Message, MessageError};
 
@@ -24,7 +24,7 @@ impl Display for ClientError {
     }
 }
 
-pub async fn handle_connection(mut stream: TcpStream, runtime: Arc<Runtime>, channel: ClientChannel) -> Result<(), ClientError> {
+pub async fn handle_connection(mut stream: TcpStream, runtime: Arc<Runtime>, channel: Channel) -> Result<(), ClientError> {
     say!("Handling connection");
     let mut running = Arc::new(AtomicBool::new(true));
     let writer_running_clone = running.clone();
@@ -73,10 +73,12 @@ pub async fn handle_connection(mut stream: TcpStream, runtime: Arc<Runtime>, cha
 
     // handling messages from other clients
     while writer_running_clone.load(std::sync::atomic::Ordering::SeqCst) {
+        say!("Waiting for message");
         // get data from main thread
         // this will hang the thread until a message is received, even if the socket is closed.
         let message = channel.receive();
         // todo: add a disconnect message internally in the server
+        say!("Received message from channel");
 
         // send the message to the client
         let mut writer = VarWriter::new();

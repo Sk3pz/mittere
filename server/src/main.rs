@@ -36,7 +36,7 @@ async fn main() {
 
     say!("Server started on {}. Creating channels and runtime.", connection_info);
     // create the message history buffer
-    let (server_channel, client_channel) = channel::ServerChannel::new();
+    let client_channel = channel::Channel::new();
 
     // create a runtime
     let runtime = match Runtime::new() {
