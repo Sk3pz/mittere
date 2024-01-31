@@ -53,6 +53,7 @@ async fn main() {
             }
 
             // exit the program
+            println!("Disconnected from server :(");
             std::process::exit(0);
         }
     });

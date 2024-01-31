@@ -25,8 +25,6 @@ impl Display for ClientError {
 }
 
 pub async fn handle_connection(mut stream: TcpStream, runtime: Arc<Runtime>, channel: Channel) -> Result<(), ClientError> {
-    let mut running = Arc::new(AtomicBool::new(true));
-    let writer_running_clone = running.clone();
 
     // copy the stream
     let mut read_stream = stream.try_clone().map_err(|e| ClientError::IoError(e))?;
@@ -47,57 +45,55 @@ pub async fn handle_connection(mut stream: TcpStream, runtime: Arc<Runtime>, cha
     channel.send(Message::new(format!("{} has connected.", username.clone()), "Server".to_string()));
     let author = username.clone();
 
-    // reading data from the client
-    runtime.spawn(async move {
-        let mut reader = VarReader::new(&mut read_stream);
+    // handling messages from other clients
+    let writer = runtime.spawn(async move {
+        loop {
+            // get data from main thread
+            // this will hang the thread until a message is received, even if the socket is closed.
+            let message = channel.receive();
 
-        while let Ok(read) = reader.read_data() {
-            if read.len() != 1 {
-                let _ = reader_channel.send(Message::new("Invalid message".to_string(), "Server".to_string()));
-                hey!("Invalid message: invalid segment count");
-                break; // this currently is set up to close the connection if the message is invalid
+            if message.author == author {
+                continue;
             }
 
-            // convert to a Message type
-            let raw = read.first().unwrap().to_string();
-            let message = Message::new(raw, username.to_string());
+            // send the message to the client
+            let mut writer = VarWriter::new();
+            for segment in message.segmented() {
+                writer.add(segment);
+            }
 
-            say!("Message from {} @ {}: {}", message.author, message.timestamp, message.message);
-
-            reader_channel.send(message);
+            match writer.send(&mut stream) {
+                Ok(_) => {},
+                Err(e) => {
+                    hey!("Error sending message: {}", e);
+                }
+            }
         }
-
-        // tell the main client thread that we should exit
-        running.store(false, std::sync::atomic::Ordering::SeqCst);
     });
 
-    // handling messages from other clients
-    while writer_running_clone.load(std::sync::atomic::Ordering::SeqCst) {
-        // get data from main thread
-        // this will hang the thread until a message is received, even if the socket is closed.
-        let message = channel.receive();
-        // todo: add a disconnect message internally in the server
+    // reading data from the client
+    let mut reader = VarReader::new(&mut read_stream);
 
-        if message.author == author {
-            continue;
+    while let Ok(read) = reader.read_data() {
+        if read.len() != 1 {
+            let _ = reader_channel.send(Message::new("Invalid message".to_string(), "Server".to_string()));
+            hey!("Invalid message: invalid segment count");
+            break; // this currently is set up to close the connection if the message is invalid
         }
 
-        // send the message to the client
-        let mut writer = VarWriter::new();
-        for segment in message.segmented() {
-            writer.add(segment);
-        }
+        // convert to a Message type
+        let raw = read.first().unwrap().to_string();
+        let message = Message::new(raw, username.to_string());
 
-        match writer.send(&mut stream) {
-            Ok(_) => {},
-            Err(e) => {
-                hey!("Error sending message: {}", e);
-                return Err(ClientError::IoError(e));
-            }
-        }
+        say!("Message from {} @ {}: {}", message.author, message.timestamp, message.message);
+
+        reader_channel.send(message);
     }
 
+    writer.abort();
+
     // send disconnect message
+    say!("Client {} disconnected.", author);
     channel.send(Message::new(format!("{} has disconnected.", author.clone()), "Server".to_string()));
 
     Ok(())
