@@ -60,6 +60,7 @@ dependencies = [
  "better_term",
  "common",
  "send-it",
+ "tokio",
 ]
 
 [[package]]
