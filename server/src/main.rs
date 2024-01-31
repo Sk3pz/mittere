@@ -74,6 +74,11 @@ async fn main() {
         let client_channel = client_channel.clone();
         let read_client_channel = client_channel.clone();
 
+        // determine the id of the client
+        // todo: this id system will break once reaching a massive number.
+        //   need to implement a way to recycle ids
+        let id = current_id.clone();
+
         // get username from the client
         // todo: handle login here
         let mut reader = VarReader::new(&mut stream);
@@ -90,9 +95,7 @@ async fn main() {
         let (read_stream, write_stream) = stream.into_split();
 
         let reader_username = username.clone();
-        let reader_id = current_id.clone();
-
-        let writer_id = current_id.clone();
+        let reader_id = id.clone();
 
         // spawn the read handler
         tokio::spawn(async move {
@@ -103,7 +106,7 @@ async fn main() {
 
         // spawn the write handler
         tokio::spawn(async move {
-            if let Err(e) = handle_write_conn(write_stream, client_channel, username, writer_id).await {
+            if let Err(e) = handle_write_conn(write_stream, client_channel, username, id).await {
                 nay!("Error handling connection: {}", e);
             }
         });
