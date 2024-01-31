@@ -5,7 +5,10 @@ use send_it::{reader::VarReader, writer::VarWriter};
 
 #[tokio::main]
 async fn main() {
-    let mut stream = match TcpStream::connect("127.0.0.1:25565") {
+    let ip = read_input!("Enter the server IP: ");
+    let port = read_input!("Enter the server port: ");
+
+    let mut stream = match TcpStream::connect(format!("{}:{}", ip, port).as_str()) {
         Ok(l) => l,
         Err(e) => {
             println!("Error connecting to {}: {}", "", e);
