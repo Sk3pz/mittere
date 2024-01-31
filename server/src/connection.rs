@@ -97,6 +97,9 @@ pub async fn handle_connection(mut stream: TcpStream, runtime: Arc<Runtime>, cha
         }
     }
 
+    // send disconnect message
+    channel.send(Message::new(format!("{} has disconnected.", username.clone()), "Server".to_string()));
+
     Ok(())
 }
 
