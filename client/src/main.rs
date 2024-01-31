@@ -49,7 +49,7 @@ async fn main() {
     // stdin message
     let mut writer = VarWriter::new();
     loop {
-        let input = read_input!(">");
+        let input = read_input!();
         writer.add_string(input);
         writer.send(&mut stream).unwrap_or_else(|e| {
             eprintln!("Failed to send: {}", e);
