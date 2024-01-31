@@ -55,9 +55,9 @@ dependencies = [
 
 [[package]]
 name = "better_term"
-version = "1.4.5"
+version = "1.4.61"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b31505c3f1fc81fa86afbaffe26d5d310c2cccc1bd75f884f9fcb26ef6150ba"
+checksum = "955b6c3bab06222e028b5f7a911921e8d4db69305d658cc7f510d41f3a5d7222"
 
 [[package]]
 name = "bumpalo"
@@ -99,17 +99,8 @@ name = "client"
 version = "0.1.0"
 dependencies = [
  "better_term",
- "common",
  "send-it",
  "tokio",
-]
-
-[[package]]
-name = "common"
-version = "0.1.0"
-dependencies = [
- "better_term",
- "send-it",
 ]
 
 [[package]]
@@ -316,7 +307,6 @@ version = "0.1.0"
 dependencies = [
  "better_term",
  "chrono",
- "common",
  "send-it",
  "serde",
  "tokio",

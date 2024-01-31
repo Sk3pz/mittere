@@ -1,4 +1,4 @@
 # The IP and Port that the server should host on
 [conn]
 ip = "0.0.0.0"
-port = 2727
+port = 25565
