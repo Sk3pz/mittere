@@ -1,6 +1,6 @@
 use std::net::TcpStream;
 use better_term::read_input;
-use chrono::DateTime;
+use chrono::{DateTime, Local};
 
 use send_it::{reader::VarReader, writer::VarWriter};
 use common::message::Message;
@@ -47,7 +47,9 @@ async fn main() {
                     }
                 };
 
-                println!("{} {}: {}", local_time.naive_local(), message.author, message.message);
+                let local_time = local_time.with_timezone(&Local);
+
+                println!("{} {}: {}", local_time.format("%m/%d/%Y %I:%M%p"), message.author, message.message);
             }
 
             // exit the program
