@@ -13,3 +13,4 @@ common = { path = "../common" }
 better_term = "1.4.61"
 send-it = "*"
 tokio = { version = "*", features = ["rt", "rt-multi-thread", "macros"] }
+chrono = "*"

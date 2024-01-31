@@ -1,7 +1,9 @@
 use std::net::TcpStream;
 use better_term::read_input;
+use chrono::DateTime;
 
 use send_it::{reader::VarReader, writer::VarWriter};
+use common::message::Message;
 
 #[tokio::main]
 async fn main() {
@@ -29,9 +31,23 @@ async fn main() {
         let mut reader = VarReader::new(&mut stream_reader);
         loop {
             while let Ok(read) = reader.read_data() {
-                for s in read {
-                    println!("{}", s);
-                }
+                 let message = match Message::from_segments(read) {
+                     Ok(m) => m,
+                     Err(e) => {
+                         eprintln!("Error reading message: {}", e);
+                         continue;
+                     }
+                 };
+
+                let local_time = match DateTime::parse_from_str(message.timestamp.as_str(), "%Y-%m-%d %H:%M:%S") {
+                    Ok(t) => t,
+                    Err(e) => {
+                        eprintln!("Error parsing time: {}", e);
+                        continue;
+                    }
+                };
+
+                println!("{} {}: {}", local_time.naive_local(), message.author, message.message);
             }
 
             // exit the program

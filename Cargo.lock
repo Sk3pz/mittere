@@ -99,6 +99,7 @@ name = "client"
 version = "0.1.0"
 dependencies = [
  "better_term",
+ "chrono",
  "common",
  "send-it",
  "tokio",
