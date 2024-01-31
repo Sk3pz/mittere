@@ -44,7 +44,8 @@ pub async fn handle_connection(mut stream: TcpStream, runtime: Arc<Runtime>, cha
     };
 
     say!("Client {} connected.", username);
-    channel.send(Message::new(format!("{} has connected.", username), "Server".to_string()));
+    channel.send(Message::new(format!("{} has connected.", username.clone()), "Server".to_string()));
+    let author = username.clone();
 
     // reading data from the client
     runtime.spawn(async move {
@@ -77,7 +78,7 @@ pub async fn handle_connection(mut stream: TcpStream, runtime: Arc<Runtime>, cha
         let message = channel.receive();
         // todo: add a disconnect message internally in the server
 
-        if message.author == username {
+        if message.author == author {
             continue;
         }
 
