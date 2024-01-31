@@ -28,7 +28,7 @@ impl Message {
         Self {
             message,
             author,
-            timestamp: format!("{}", chrono::Local::now()),
+            timestamp: format!("{}", chrono::Utc::now().to_rfc3339()),
         }
     }
 

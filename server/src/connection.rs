@@ -77,6 +77,10 @@ pub async fn handle_connection(mut stream: TcpStream, runtime: Arc<Runtime>, cha
         let message = channel.receive();
         // todo: add a disconnect message internally in the server
 
+        if message.author == username {
+            continue;
+        }
+
         // send the message to the client
         let mut writer = VarWriter::new();
         for segment in message.segmented() {

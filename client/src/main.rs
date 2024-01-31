@@ -41,7 +41,7 @@ async fn main() {
 
                 println!("timestamp: {}", message.timestamp);
 
-                let local_time = match DateTime::parse_from_str(message.timestamp.as_str(), "%Y-%m-%d %H:%M:%S") {
+                let local_time = match DateTime::parse_from_rfc3339(message.timestamp.as_str()) {
                     Ok(t) => t,
                     Err(e) => {
                         eprintln!("Error parsing time: {}", e);
