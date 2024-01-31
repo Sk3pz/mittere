@@ -1,6 +1,6 @@
 use std::fmt;
 use std::fmt::{Display, Formatter};
-use std::net::ToSocketAddrs;
+use tokio::net::ToSocketAddrs;
 use std::path::Path;
 use serde::Deserialize;
 
@@ -23,13 +23,6 @@ impl Display for ConfigError {
 pub struct ConnectionInfo {
     pub(crate) ip: String,
     pub(crate) port: u16,
-}
-
-impl ToSocketAddrs for ConnectionInfo {
-    type Iter = std::vec::IntoIter<std::net::SocketAddr>;
-    fn to_socket_addrs(&self) -> std::io::Result<Self::Iter> {
-        format!("{}:{}", self.ip, self.port).to_socket_addrs()
-    }
 }
 
 impl Display for ConnectionInfo {

@@ -11,6 +11,6 @@ readme = "../README.md"
 [dependencies]
 common = { path = "../common" }
 better_term = "1.4.61"
-send-it = "*"
-tokio = { version = "*", features = ["rt", "rt-multi-thread", "macros"] }
+send-it = { version = "0.2.2", features = ["reading", "writing", "tokio"] }
+tokio = { version = "*", features = ["rt", "rt-multi-thread", "macros", "io-util"] }
 chrono = "*"

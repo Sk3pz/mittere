@@ -7,4 +7,4 @@ edition = "2021"
 
 [dependencies]
 chrono = "*"
-send-it = "*"
+send-it = { version = "0.2.2", features = ["reading", "writing", "tokio"] }

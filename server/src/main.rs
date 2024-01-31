@@ -1,8 +1,9 @@
-use crate::connection::handle_connection;
-use std::net::TcpListener;
+use crate::connection::{ClientError, handle_read_conn, handle_write_conn};
+use tokio::net::TcpListener;
 use std::sync::Arc;
+use send_it::async_reader::VarReader;
 use tokio::runtime::Runtime;
-use common::message::Message;
+use common::message::{Message, MessageError};
 
 mod config;
 mod connection;
@@ -25,7 +26,7 @@ async fn main() {
 
     say!("Starting server");
     // setup the listener
-    let listener = match TcpListener::bind(&connection_info) {
+    let listener = match TcpListener::bind(format!("{}:{}", connection_info.ip, connection_info.port)).await {
         Ok(l) => l,
         Err(e) => {
             nay!("Error binding to {}: {}", connection_info, e);
@@ -37,23 +38,11 @@ async fn main() {
     // create the message history buffer
     let client_channel = channel::Channel::new();
 
-    // create a runtime
-    let runtime = match Runtime::new() {
-        Ok(r) => r,
-        Err(e) => {
-            nay!("Error creating runtime: {}", e);
-            return;
-        }
-    };
-
-    // create an atomic runtime
-    let runtime = Arc::new(runtime);
-
     say!("Server listening and accepting connections.");
     // start the listener
-    for stream in listener.incoming() {
-        // handle connection errors
-        let stream = match stream {
+    loop {
+        // get the stream
+        let (mut stream, _) = match listener.accept().await {
             Ok(s) => s,
             Err(e) => {
                 nay!("Error accepting connection: {}", e);
@@ -62,11 +51,33 @@ async fn main() {
         };
 
         let client_channel = client_channel.clone();
-        let runtime = runtime.clone();
+        let read_client_channel = client_channel.clone();
 
-        // send the connection to a new thread
+        // get username from the client
+        let mut reader = VarReader::new(&mut stream);
+        let username = match reader.read_data().await.map_err(|e| ClientError::IoError(e))? {
+            read if read.len() == 1 => read.first().unwrap().to_string(),
+            _ => {
+                let _ = client_channel.send(Message::new("Invalid message".to_string(), "Server".to_string()));
+                hey!("Invalid message: invalid segment count");
+                continue;
+            }
+        };
+
+        let (read_stream, write_stream) = stream.split();
+
+        let should_exit = Arc::new(false);
+
+        // read handler
         tokio::spawn(async move {
-            if let Err(e) = handle_connection(stream, runtime, client_channel).await {
+            if let Err(e) = handle_read_conn(read_stream, read_client_channel, username.clone()).await {
+                nay!("Error handling connection: {}", e);
+            }
+        });
+
+        // write handler
+        tokio::spawn(async move {
+            if let Err(e) = handle_write_conn(write_stream, client_channel, username).await {
                 nay!("Error handling connection: {}", e);
             }
         });
