@@ -1,5 +1,5 @@
 use std::sync::{Arc, mpsc, Mutex};
-use crate::message::Message;
+use common::message::Message;
 
 pub struct Channel {
     message_sender: Arc<Mutex<mpsc::Sender<Message>>>,

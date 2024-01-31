@@ -99,8 +99,17 @@ name = "client"
 version = "0.1.0"
 dependencies = [
  "better_term",
+ "common",
  "send-it",
  "tokio",
+]
+
+[[package]]
+name = "common"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "send-it",
 ]
 
 [[package]]
@@ -306,7 +315,7 @@ name = "server"
 version = "0.1.0"
 dependencies = [
  "better_term",
- "chrono",
+ "common",
  "send-it",
  "serde",
  "tokio",

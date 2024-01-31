@@ -7,7 +7,7 @@ use std::sync::Arc;
 use tokio::runtime::Runtime;
 use crate::channel::Channel;
 use crate::{hey, say};
-use crate::message::{Message, MessageError};
+use common::message::{Message, MessageError};
 
 #[derive(Debug)]
 pub enum ClientError {

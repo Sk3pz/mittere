@@ -9,9 +9,9 @@ repository = "https://github.com/sk3pz/mittere"
 readme = "../README.md"
 
 [dependencies]
+common = { path = "../common" }
 better_term = "1.4.61"
 send-it = "*"
 tokio = { version = "*", features = ["rt", "rt-multi-thread", "macros"] }
 toml = "*"
 serde = { version = "*", features = ["derive"] }
-chrono = "0.4.33"

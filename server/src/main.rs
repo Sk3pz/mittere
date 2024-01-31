@@ -2,13 +2,12 @@ use crate::connection::handle_connection;
 use std::net::TcpListener;
 use std::sync::Arc;
 use tokio::runtime::Runtime;
-use crate::message::Message;
+use common::message::Message;
 
 mod config;
 mod connection;
 mod logging;
 mod channel;
-pub mod message;
 
 #[tokio::main]
 async fn main() {
