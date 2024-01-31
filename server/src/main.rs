@@ -1,5 +1,5 @@
 use std::net::TcpListener;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, mpsc, Mutex};
 use common::Message;
 use crate::connection::handle_connection;
 
@@ -31,7 +31,17 @@ async fn main() {
     };
 
     // create the message history buffer
-    let history: Arc<Mutex<Vec<Message>>> = Arc::new(Mutex::new(Vec::new()));
+
+    // cirx = client input receiver, citx = client input transmitter
+    // citx is used to send messages to the main thread from the client threads
+    // cirx is used to receive messages from the main thread to the client threads
+    let (cirx, citx) = mpsc::channel::<Message>();
+    let client_sender = Arc::new(Mutex::new(citx));
+    // bcrx = broadcast receiver, bctx = broadcast transmitter
+    // bctx is used to send messages to the client threads from the main thread
+    // bcrx is used to receive messages from the client threads to the main thread
+    let (bcrx, bctx) = mpsc::channel::<Message>();
+    let client_receiver = Arc::new(Mutex::new(bcrx));
 
     // start the listener
     for stream in listener.incoming() {
@@ -44,12 +54,13 @@ async fn main() {
             }
         };
 
-        // clone history to send to the client handler
-        let history_clone = history.clone();
+        // clone client broadcaster and receiver
+        let client_sender = Arc::clone(&client_sender);
+        let client_receiver = Arc::clone(&client_receiver);
 
         // send the connection to a new thread
         tokio::spawn(async move {
-            if let Err(e) = handle_connection(stream, history_clone){
+            if let Err(e) = handle_connection(stream, client_sender, client_receiver) {
                 nay!("Error handling connection: {}", e);
             }
         });

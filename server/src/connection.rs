@@ -1,6 +1,7 @@
 use std::fmt::Display;
 use std::net::TcpStream;
 use std::sync::{Arc, Mutex};
+use std::sync::mpsc::{Receiver, Sender};
 use send_it::reader::VarReader;
 use send_it::writer::VarWriter;
 use common::Message;
@@ -19,7 +20,7 @@ impl Display for ClientError {
 
 }
 
-pub fn handle_connection(mut stream: TcpStream, history: Arc<Mutex<Vec<Message>>>) -> Result<(), ClientError> {
+pub fn handle_connection(mut stream: TcpStream, receiver: Arc<Mutex<Receiver<Message>>>, sender: Arc<Mutex<Sender<Message>>>) -> Result<(), ClientError> {
 
     let mut reader = VarReader::new(&mut stream);
     let mut writer = VarWriter::new();
