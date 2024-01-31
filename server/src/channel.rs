@@ -25,6 +25,15 @@ impl ClientChannel {
 
 }
 
+impl Clone for ClientChannel {
+    fn clone(&self) -> Self {
+        Self {
+            message_sender: self.message_sender.clone(),
+            message_receiver: self.message_receiver.clone(),
+        }
+    }
+}
+
 pub struct ServerChannel {
     message_sender: mpsc::Sender<Message>,
     message_receiver: mpsc::Receiver<Message>,
