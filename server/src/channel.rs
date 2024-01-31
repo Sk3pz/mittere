@@ -1,12 +1,11 @@
 use std::sync::{Arc, mpsc, Mutex};
-use common::message::Message;
 
-pub struct Channel {
-    message_sender: Arc<Mutex<mpsc::Sender<Message>>>,
-    message_receiver: Arc<Mutex<mpsc::Receiver<Message>>>,
+pub struct AtomicChannel<T> {
+    message_sender: Arc<Mutex<mpsc::Sender<T>>>,
+    message_receiver: Arc<Mutex<mpsc::Receiver<T>>>,
 }
 
-impl Channel {
+impl<T> AtomicChannel<T> {
 
     pub fn new() -> Self {
         let (sender, receiver) = mpsc::channel();
@@ -16,17 +15,17 @@ impl Channel {
         }
     }
 
-    pub fn send(&self, message: Message) {
+    pub fn send(&self, message: T) {
         self.message_sender.lock().unwrap().send(message).unwrap();
     }
 
-    pub fn receive(&self) -> Message {
+    pub fn receive(&self) -> T {
         self.message_receiver.lock().unwrap().recv().unwrap()
     }
 
 }
 
-impl Clone for Channel {
+impl<T> Clone for AtomicChannel<T> {
 
     fn clone(&self) -> Self {
         Self {

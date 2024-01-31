@@ -1,8 +1,8 @@
-use std::net::TcpStream;
+use tokio::net::TcpStream;
 use better_term::read_input;
 use chrono::{DateTime, Local};
 
-use send_it::{reader::VarReader, writer::VarWriter};
+use send_it::{async_reader::VarReader, async_writer::VarWriter};
 use common::message::Message;
 
 #[tokio::main]
@@ -10,7 +10,7 @@ async fn main() {
     let ip = read_input!("Enter the server IP: ");
     let port = read_input!("Enter the server port: ");
 
-    let mut stream = match TcpStream::connect(format!("{}:{}", ip, port).as_str()) {
+    let stream = match TcpStream::connect(format!("{}:{}", ip, port).as_str()).await {
         Ok(l) => l,
         Err(e) => {
             println!("Error connecting to {}: {}", "", e);
@@ -19,18 +19,12 @@ async fn main() {
     };
 
     // try to clone the stream
-    let mut stream_reader = match stream.try_clone(){
-        Ok(s) => s,
-        Err(e) => {
-            println!("Error cloning stream: {}", e);
-            return;
-        }
-    };
+    let (mut stream_read, mut stream_write) = stream.into_split();
 
     tokio::spawn(async move {
-        let mut reader = VarReader::new(&mut stream_reader);
+        let mut reader = VarReader::new(&mut stream_read);
         loop {
-            while let Ok(read) = reader.read_data() {
+            while let Ok(read) = reader.read_data().await {
                  let message = match Message::from_segments(read) {
                      Ok(m) => m,
                      Err(e) => {
@@ -63,14 +57,14 @@ async fn main() {
     let username = read_input!("Enter your username: ");
     let mut writer = VarWriter::new();
     writer.add_string(username);
-    writer.send(&mut stream).expect("Failed to send :(");
+    writer.send(&mut stream_write).await.expect("Failed to send :(");
 
     // stdin message
     let mut writer = VarWriter::new();
     loop {
         let input = read_input!();
         writer.add_string(input);
-        writer.send(&mut stream).unwrap_or_else(|e| {
+        writer.send(&mut stream_write).await.unwrap_or_else(|e| {
             eprintln!("Failed to send: {}", e);
         });
     }

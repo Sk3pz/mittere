@@ -1,6 +1,5 @@
 use std::fmt;
 use std::fmt::{Display, Formatter};
-use tokio::net::ToSocketAddrs;
 use std::path::Path;
 use serde::Deserialize;
 

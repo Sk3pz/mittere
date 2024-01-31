@@ -1,11 +1,9 @@
 use send_it::async_reader::VarReader;
 use send_it::async_writer::VarWriter;
 use std::fmt::Display;
-use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
-use tokio::net::tcp::{ReadHalf, WriteHalf};
-use crate::channel::Channel;
-use crate::{hey, say};
+use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
+use crate::channel::AtomicChannel;
+use crate::{Event, hey, say};
 use common::message::{Message, MessageError};
 
 #[derive(Debug)]
@@ -23,17 +21,19 @@ impl Display for ClientError {
     }
 }
 
-pub async fn handle_read_conn(mut read_stream: ReadHalf<'static>,
-                              channel: Channel, username: String) -> Result<(), ClientError> {
+pub async fn handle_read_conn(mut read_stream: OwnedReadHalf,
+                              channel: AtomicChannel<Event>, username: String, id: usize) -> Result<(), ClientError> {
     say!("Client {} connected.", username);
-    channel.send(Message::new(format!("{} has connected.", username.clone()), "Server".to_string()));
+    channel.send(Event::Message(
+        Message::new(format!("{} has connected.", username.clone()), "Server".to_string())));
 
     // reading data from the client
     let mut reader = VarReader::new(&mut read_stream);
 
     while let Ok(read) = reader.read_data().await {
         if read.len() != 1 {
-            let _ = channel.send(Message::new("Invalid message".to_string(), "Server".to_string()));
+            let _ = channel.send(Event::Message(
+                Message::new("Invalid message".to_string(), "Server".to_string())));
             hey!("Invalid message: invalid segment count");
             return Err(ClientError::InvalidMessage(MessageError::InvalidSegmentCount));
         }
@@ -44,21 +44,33 @@ pub async fn handle_read_conn(mut read_stream: ReadHalf<'static>,
 
         say!("Message from {} @ {}: {}", message.author, message.timestamp, message.message);
 
-        channel.send(message);
+        channel.send(Event::Message(message));
     }
 
-    // send disconnect
+    // send disconnect to write thread
+    channel.send(Event::Disconnect { id });
+
+    // notify disconnect
     say!("Client {} disconnected.", username);
-    channel.send(Message::new(format!("{} has disconnected.", username.clone()), "Server".to_string()));
+    channel.send(Event::Message(Message::new(format!("{} has disconnected.", username.clone()), "Server".to_string())));
     Ok(())
 }
 
-pub async fn handle_write_conn(mut write_stream: WriteHalf<'static>,
-                               channel: Channel, username: String, should_close: Arc<AtomicBool>) -> Result<(), ClientError> {
-    while !should_close.load(std::sync::atomic::Ordering::SeqCst) {
+pub async fn handle_write_conn(mut write_stream: OwnedWriteHalf,
+                               channel: AtomicChannel<Event>, username: String, id: usize) -> Result<(), ClientError> {
+    loop {
         // get data from main thread
         // this will hang the thread until a message is received, even if the socket is closed.
-        let message = channel.receive();
+        let message = match channel.receive() {
+            // receive the message
+            Event::Message(msg) => msg,
+            // disconnect if requested
+            Event::Disconnect { id: to_disconnect_id } if to_disconnect_id == id => break,
+            // skip over disconnects for other clients
+            Event::Disconnect { .. } => continue,
+            // handle server shutdown
+            Event::Shutdown => break
+        };
 
         if message.author == username {
             continue;

@@ -12,6 +12,6 @@ readme = "../README.md"
 common = { path = "../common" }
 better_term = "1.4.61"
 send-it = { version = "0.2.2", features = ["reading", "writing", "tokio"] }
-tokio = { version = "*", features = ["rt", "rt-multi-thread", "macros", "net", "io-util"] }
+tokio = { version = "*", features = ["rt", "rt-multi-thread", "macros", "net", "io-util", "signal"] }
 toml = "*"
 serde = { version = "*", features = ["derive"] }
