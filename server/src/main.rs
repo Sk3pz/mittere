@@ -2,10 +2,12 @@ use crate::connection::handle_connection;
 use common::Message;
 use std::net::TcpListener;
 use std::sync::{mpsc, Arc, Mutex};
+use chrono::Local;
 
 mod config;
 mod connection;
 mod logging;
+mod channel;
 
 #[tokio::main]
 async fn main() {
@@ -31,19 +33,7 @@ async fn main() {
     };
 
     // create the message history buffer
-
-    // cirx = client input receiver, citx = client input transmitter
-    // citx is used to send messages to the main thread from the client threads
-    // cirx is used to receive messages from the main thread to the client threads
-    let (cirx, citx) = mpsc::channel::<Message>();
-    let client_sender = Arc::new(Mutex::new(citx));
-    // bcrx = broadcast receiver, bctx = broadcast transmitter
-    // bctx is used to send messages to the client threads from the main thread
-    // bcrx is used to receive messages from the client threads to the main thread
-    let (bcrx, bctx) = mpsc::channel::<Message>();
-    let client_receiver = Arc::new(Mutex::new(bcrx));
-
-    let mut join_index = 0;
+    let (server_channel, client_channel) = channel::ServerChannel::new();
 
     // start the listener
     for stream in listener.incoming() {
@@ -56,24 +46,17 @@ async fn main() {
             }
         };
 
-        client_receiver
-            .lock()
-            .unwrap()
-            .send(Message {
-                message: "User has joined".to_owned(),
-                author: "User".to_owned(),
-                timestamp: format!("{}", join_index),
-            })
-            .unwrap();
-        join_index += 1;
+        server_channel.send(Message {
+            message: "User has joined".to_owned(),
+            author: "Server".to_owned(),
+            timestamp: format!("{}", Local::now()),
+        });
 
-        // clone client broadcaster and receiver
-        let client_sender = Arc::clone(&client_sender);
-        let client_receiver = Arc::clone(&client_receiver);
+        let client_channel = client_channel.clone();
 
         // send the connection to a new thread
         tokio::spawn(async move {
-            if let Err(e) = handle_connection(stream, client_sender, client_receiver) {
+            if let Err(e) = handle_connection(stream, client_channel) {
                 nay!("Error handling connection: {}", e);
             }
         });
