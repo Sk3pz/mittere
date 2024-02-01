@@ -1,9 +1,9 @@
 use tokio::net::TcpStream;
 use better_term::read_input;
-use chrono::{DateTime, Local};
 
 use send_it::{async_reader::VarReader, async_writer::VarWriter};
 use common::message::Message;
+use common::to_local_time;
 
 #[tokio::main]
 async fn main() {
@@ -33,15 +33,13 @@ async fn main() {
                      }
                  };
 
-                let local_time = match DateTime::parse_from_rfc3339(message.timestamp.as_str()) {
+                let local_time = match to_local_time(&message.timestamp) {
                     Ok(t) => t,
                     Err(e) => {
                         eprintln!("Error parsing time: {}", e);
                         continue;
                     }
                 };
-
-                let local_time = local_time.with_timezone(&Local);
 
                 println!("{} {}: {}", local_time.format("%m/%d/%Y %I:%M%p"), message.author, message.message);
             }
