@@ -42,7 +42,7 @@ pub async fn handle_read_conn(mut read_stream: OwnedReadHalf,
         let raw = read.first().unwrap().to_string();
         let message = Message::new(raw, username.to_string());
 
-        say!("Message from {} @ {}: {}", message.author, message.timestamp, message.message);
+        say!("{} {}: {}", message.author, message.timestamp, message.message);
 
         channel.send(Event::Message(message));
     }

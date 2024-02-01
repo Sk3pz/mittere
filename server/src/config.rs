@@ -31,6 +31,11 @@ impl Display for ConnectionInfo {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct General {
+    pub(crate) show_msgs_on_server: bool,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     pub(crate) conn: ConnectionInfo,
 }
@@ -40,7 +45,11 @@ impl Config {
         let default_config = "# The IP and Port that the server should host on\
         \n[conn]\
         \nip = \"0.0.0.0\"\
-        \nport = 2727";
+        \nport = 2727\
+        \n\
+        \n# General settings\
+        \n[general]\
+        \nshow_msgs_on_server = true";
 
         // create the directory if it doesn't exist
         if let Some(dir) = path.as_ref().parent() {
