@@ -5,6 +5,7 @@ use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use crate::channel::AtomicChannel;
 use crate::{Event, hey, say};
 use common::message::{Message, MessageError};
+use common::to_local_time;
 
 #[derive(Debug)]
 pub enum ClientError {
@@ -21,8 +22,8 @@ impl Display for ClientError {
     }
 }
 
-pub async fn handle_read_conn(mut read_stream: OwnedReadHalf,
-                              channel: AtomicChannel<Event>, username: String, id: usize) -> Result<(), ClientError> {
+pub async fn handle_read_conn(mut read_stream: OwnedReadHalf, channel: AtomicChannel<Event>,
+                              username: String, id: usize, log_msgs: bool) -> Result<(), ClientError> {
     say!("Client {} connected.", username);
     channel.send(Event::Message(
         Message::new(format!("{} has connected.", username.clone()), "Server".to_string())));
@@ -42,7 +43,10 @@ pub async fn handle_read_conn(mut read_stream: OwnedReadHalf,
         let raw = read.first().unwrap().to_string();
         let message = Message::new(raw, username.to_string());
 
-        say!("{} {}: {}", message.author, message.timestamp, message.message);
+        if log_msgs {
+            let local_time = to_local_time(message.timestamp.clone()).unwrap();
+            say!("{} {}: {}", local_time.format("%m/%d/%Y %I:%M%p"), message.author, message.message);
+        }
 
         channel.send(Event::Message(message));
     }

@@ -63,6 +63,7 @@ async fn main() {
     // start the listener
     while listening.load(Ordering::SeqCst) {
         // get the stream
+        // todo: listener.accept is blocking, consider a timeout using tokio::time::timeout?
         let (mut stream, _) = match listener.accept().await {
             Ok(s) => s,
             Err(e) => {
@@ -97,9 +98,11 @@ async fn main() {
         let reader_username = username.clone();
         let reader_id = id.clone();
 
+        let log_msgs = config.general.show_msgs_on_server.clone();
+
         // spawn the read handler
         tokio::spawn(async move {
-            if let Err(e) = handle_read_conn(read_stream, read_client_channel, reader_username, reader_id).await {
+            if let Err(e) = handle_read_conn(read_stream, read_client_channel, reader_username, reader_id, log_msgs).await {
                 nay!("Error handling connection: {}", e);
             }
         });

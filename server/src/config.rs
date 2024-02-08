@@ -38,6 +38,7 @@ pub struct General {
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     pub(crate) conn: ConnectionInfo,
+    pub(crate) general: General,
 }
 
 impl Config {
@@ -49,6 +50,7 @@ impl Config {
         \n\
         \n# General settings\
         \n[general]\
+        \n# Show messages from clients on the server console\
         \nshow_msgs_on_server = true";
 
         // create the directory if it doesn't exist
