@@ -1,11 +1,13 @@
 use send_it::async_reader::VarReader;
 use send_it::async_writer::VarWriter;
 use std::fmt::Display;
+use std::sync::Arc;
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use crate::channel::AtomicChannel;
 use crate::{Event, hey, say};
 use common::message::{Message, MessageError};
 use common::to_local_time;
+use crate::id_allocator::IdAllocator;
 
 #[derive(Debug)]
 pub enum ClientError {
@@ -61,7 +63,8 @@ pub async fn handle_read_conn(mut read_stream: OwnedReadHalf, channel: AtomicCha
 }
 
 pub async fn handle_write_conn(mut write_stream: OwnedWriteHalf,
-                               channel: AtomicChannel<Event>, username: String, id: usize) -> Result<(), ClientError> {
+                               channel: AtomicChannel<Event>, username: String,
+                               id: usize, mut id_allocator: Arc<IdAllocator>) -> Result<(), ClientError> {
     loop {
         // get data from main thread
         // this will hang the thread until a message is received, even if the socket is closed.
@@ -91,11 +94,14 @@ pub async fn handle_write_conn(mut write_stream: OwnedWriteHalf,
             Ok(_) => {},
             Err(e) => {
                 hey!("Error sending message: {}", e);
-                return Err(ClientError::IoError(e));
+                // todo: better error handling here
+                // id_allocator.free(id);
+                // return Err(ClientError::IoError(e));
             }
         }
     }
 
+    id_allocator.free(id);
     Ok(())
 }
 

@@ -1,15 +1,18 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
 use crate::connection::{handle_read_conn, handle_write_conn};
 use tokio::net::TcpListener;
 use send_it::async_reader::VarReader;
 use common::message::Message;
 use crate::channel::AtomicChannel;
+use crate::id_allocator::IdAllocator;
 
 mod config;
 mod connection;
 mod logging;
 mod channel;
+mod id_allocator;
 
 #[derive(Debug, Clone)]
 pub(crate) enum Event {
@@ -46,7 +49,7 @@ async fn main() {
     // create the message history buffer
     let client_channel: AtomicChannel<Event> = AtomicChannel::new();
 
-    let mut current_id: usize = 0;
+    let mut id_allocator = Arc::new(id_allocator::IdAllocator::new());
 
     // handle ctrl+c
     let listening = Arc::new(AtomicBool::new(true));
@@ -63,8 +66,12 @@ async fn main() {
     // start the listener
     while listening.load(Ordering::SeqCst) {
         // get the stream
-        // todo: listener.accept is blocking, consider a timeout using tokio::time::timeout?
-        let (mut stream, _) = match listener.accept().await {
+        // todo: this timeout could cause issues, needs further testing!
+        let incoming = tokio::time::timeout(Duration::from_millis(5000), listener.accept()).await;
+        if let Err(_) = incoming {
+            continue;
+        }
+        let (mut stream, _) = match incoming.unwrap() {
             Ok(s) => s,
             Err(e) => {
                 nay!("Error accepting connection: {}", e);
@@ -76,9 +83,9 @@ async fn main() {
         let read_client_channel = client_channel.clone();
 
         // determine the id of the client
-        // todo: this id system will break once reaching a massive number.
-        //   need to implement a way to recycle ids
-        let id = current_id.clone();
+        let id = id_allocator.allocate();
+
+        let id_allocator_clone = id_allocator.clone();
 
         // get username from the client
         // todo: handle login here
@@ -96,7 +103,7 @@ async fn main() {
         let (read_stream, write_stream) = stream.into_split();
 
         let reader_username = username.clone();
-        let reader_id = id.clone();
+        let reader_id = id.allocate();
 
         let log_msgs = config.general.show_msgs_on_server.clone();
 
@@ -109,13 +116,10 @@ async fn main() {
 
         // spawn the write handler
         tokio::spawn(async move {
-            if let Err(e) = handle_write_conn(write_stream, client_channel, username, id).await {
+            if let Err(e) = handle_write_conn(write_stream, client_channel, username, id, id_allocator_clone).await {
                 nay!("Error handling connection: {}", e);
             }
         });
-
-        // increment the id
-        current_id += 1;
     }
 
     client_channel.send(Event::Shutdown);
