@@ -1,7 +1,7 @@
 use send_it::async_reader::VarReader;
 use send_it::async_writer::VarWriter;
 use std::fmt::Display;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use crate::channel::AtomicChannel;
 use crate::{Event, hey, say};
@@ -25,7 +25,19 @@ impl Display for ClientError {
 }
 
 pub async fn handle_read_conn(mut read_stream: OwnedReadHalf, channel: AtomicChannel<Event>,
-                              username: String, id: usize, log_msgs: bool) -> Result<(), ClientError> {
+                              id: usize, log_msgs: bool) -> Result<(), ClientError> {
+    let mut reader = VarReader::new(&mut read_stream);
+    // get username from the client
+    // todo: handle login here
+    let username = match reader.read_data().await {
+        Ok(read) if read.len() == 1 => read.first().unwrap().to_string(),
+        _ => {
+            hey!("Invalid message: invalid segment count");
+            return Err(ClientError::InvalidMessage(MessageError::InvalidSegmentCount));
+        }
+    };
+    channel.send(Event::Login { id, username: username.clone() });
+
     say!("Client {} connected.", username);
     channel.send(Event::Message(
         Message::new(format!("{} has connected.", username.clone()), "Server".to_string())));
@@ -37,8 +49,8 @@ pub async fn handle_read_conn(mut read_stream: OwnedReadHalf, channel: AtomicCha
         if read.len() != 1 {
             let _ = channel.send(Event::Message(
                 Message::new("Invalid message".to_string(), "Server".to_string())));
-            hey!("Invalid message: invalid segment count");
-            return Err(ClientError::InvalidMessage(MessageError::InvalidSegmentCount));
+            // most likely disconnecting
+            return Ok(())
         }
 
         // convert to a Message type
@@ -47,7 +59,7 @@ pub async fn handle_read_conn(mut read_stream: OwnedReadHalf, channel: AtomicCha
 
         if log_msgs {
             let local_time = to_local_time(message.timestamp.clone()).unwrap();
-            say!("{} {}: {}", local_time.format("%m/%d/%Y %I:%M%p"), message.author, message.message);
+            say!("{} {} ({}): {}", local_time.format("%m/%d/%Y %I:%M%p"), message.author, id, message.message);
         }
 
         channel.send(Event::Message(message));
@@ -63,12 +75,34 @@ pub async fn handle_read_conn(mut read_stream: OwnedReadHalf, channel: AtomicCha
 }
 
 pub async fn handle_write_conn(mut write_stream: OwnedWriteHalf,
-                               channel: AtomicChannel<Event>, username: String,
-                               id: usize, mut id_allocator: Arc<IdAllocator>) -> Result<(), ClientError> {
+                               channel: AtomicChannel<Event>,
+                               id: usize, id_allocator: Arc<Mutex<IdAllocator>>) -> Result<(), ClientError> {
+    let username: String;
+    loop {
+        let msg = channel.receive();
+        match msg {
+            Event::Login { id: to_login_id, username: received_username } if to_login_id == id => {
+                username = received_username;
+                break;
+            },
+            Event::Disconnect { id: to_disconnect_id } if to_disconnect_id == id => {
+                id_allocator.lock().unwrap().free(id);
+                return Ok(());
+            },
+            Event::Shutdown => {
+                id_allocator.lock().unwrap().free(id);
+                return Ok(());
+            },
+            _ => continue,
+        }
+    }
+    // todo: clients not receiving some messages
+    hey!("{} Starting write loop", id);
     loop {
         // get data from main thread
         // this will hang the thread until a message is received, even if the socket is closed.
         let message = match channel.receive() {
+            Event::Login {..} => continue, // ignore logins
             // receive the message
             Event::Message(msg) => msg,
             // disconnect if requested
@@ -95,13 +129,13 @@ pub async fn handle_write_conn(mut write_stream: OwnedWriteHalf,
             Err(e) => {
                 hey!("Error sending message: {}", e);
                 // todo: better error handling here
-                // id_allocator.free(id);
+                // id_allocator.lock().unwrap().free(id);
                 // return Err(ClientError::IoError(e));
             }
         }
     }
 
-    id_allocator.free(id);
+    id_allocator.lock().unwrap().free(id);
     Ok(())
 }
 
